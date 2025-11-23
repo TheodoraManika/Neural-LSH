@@ -1,0 +1,15 @@
+Myrto
+- [ ] requirement.txt 
+- [ ] βάλε τα αρχεία με τα data από παλιά εργασία 
+- [ ] βάλε τα παλιά αποτελέσματα 
+- [ ] gitignore για τα dataset και ότι άλλο χρειάζεται ρώτα chat 
+- [ ] index
+- [ ] nlsh_build.py έχει βήματα στην πρώτη σελίδα 
+- [ ] τα αρχεία θα αποθηκεύονται στο model και index
+
+Theodora
+- [ ] search 
+- [ ] create dataparsers for binary files
+- [ ] add the utils files 
+- [ ] organize the search
+- [ ] nlsh_search.py 
