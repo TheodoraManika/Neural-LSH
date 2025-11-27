@@ -1,0 +1,5 @@
+#ΕΞΑΡΤΗΣΕΙΣ
+torch
+numpy
+kahip
+scikit-learn

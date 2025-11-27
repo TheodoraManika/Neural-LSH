@@ -1,0 +1,44 @@
+dataset/*.fvecs
+*.pdf
+*.o
+*.d
+search
+
+# Ignore large result files
+results/report_tests/*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+
+# Virtual environments
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# PyTorch models
+*.pth
+*.pt
+*.ckpt
+
+# Data files
+*.ivecs
+*.bvecs
+*.hdf5
+*.h5
+
+# Model and Index outputs
+model/*.pth
+model/*.pt
+index/*.idx
+index/*.bin
+
+# Logs
+*.log
