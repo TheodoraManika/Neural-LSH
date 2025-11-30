@@ -9,7 +9,7 @@ Myrto
 
 Theodora
 - [ ] search 
-- [ ] create dataparsers for binary files
+- [✓] create dataparsers for binary files
 - [ ] add the utils files 
 - [ ] organize the search
 - [ ] nlsh_search.py 
