@@ -2,7 +2,6 @@ dataset/*.fvecs
 *.pdf
 *.o
 *.d
-search
 
 # Ignore large result files
 results/report_tests/*
