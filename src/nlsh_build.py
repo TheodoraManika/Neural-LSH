@@ -28,6 +28,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nlsh.graph.knn_graph import build_knn_graph, convert_graph_to_csr
 from nlsh.model_index_init.mlp_model import NeuralLSH_MLP
 from nlsh.model_index_init.index_builder import build_index
+from dataparser.sift_parser import SIFTParser
+from dataparser.mnist_parser import MNISTParser
 
 
 def parse_arguments():
@@ -93,12 +95,24 @@ def load_data(dataset_path, data_type):
     
     print(f"Φόρτωση δεδομένων από: {dataset_path} (type: {data_type})")
     
-    # Προσωρινά, αν το αρχείο είναι .npy
     if dataset_path.endswith('.npy'):
+        # Load from numpy format
         data = np.load(dataset_path)
+    elif data_type.lower() == 'sift':
+        # Load SIFT data using SIFTParser
+        parser = SIFTParser()
+        data = parser.read_fvecs(dataset_path)
+    elif data_type.lower() == 'mnist':
+        # Load MNIST data using MNISTParser
+        parser = MNISTParser()
+        images = parser.read_images(dataset_path)
+        # Flatten images from (N, 28, 28) to (N, 784)
+        data = images.reshape(images.shape[0], -1)
+        # Normalize to [0, 1]
+        data = data.astype(np.float32) / 255.0
     else:
-        raise NotImplementedError(f"Το dataparser για {data_type} δεν έχει υλοποιηθεί ακόμα. "
-                                  "Χρησιμοποιήστε .npy αρχεία ή υλοποιήστε το dataparser.")
+        raise ValueError(f"Άγνωστος τύπος δεδομένων: {data_type}. "
+                        "Χρησιμοποιήστε 'sift', 'mnist' ή .npy αρχεία.")
     
     print(f"Φορτώθηκαν {len(data)} σημεία με διάσταση {data.shape[1]}")
     return data
