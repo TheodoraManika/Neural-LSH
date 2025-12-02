@@ -20,6 +20,10 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.neighbors import NearestNeighbors
 import kahip
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from nlsh.graph.knn_graph import build_knn_graph, convert_graph_to_csr
 from nlsh.model_index_init.mlp_model import NeuralLSH_MLP
