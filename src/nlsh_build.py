@@ -5,7 +5,7 @@ Neural-LSH Build Script
 
 Βήματα:
 1. Φόρτωση και Προεπεξεργασία Δεδομένων
-2. Κατασκευή Γράφου k-NN
+2. Κατασκευή Γράφου k-NN (με αποθήκευση στο φάκελο graph)
 3. Διαμέριση Γράφου με KaHIP
 4. Εκπαίδευση MLP
 5. Αποθήκευση Μοντέλου και Ευρετηρίου (ενοποιημένο αρχείο inverted file)
@@ -18,51 +18,20 @@ import torch.nn as nn
 import torch.optim as optim
 import sys
 from typing import Dict, Set, Tuple
+from pathlib import Path
+import struct
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import model and index builder directly
-import importlib.util
-spec = importlib.util.spec_from_file_location("mlp_model", 
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "nlsh/index/mlp_model.py"))
-mlp_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mlp_module)
-NeuralLSH_MLP = mlp_module.NeuralLSH_MLP
-
-spec = importlib.util.spec_from_file_location("index_builder",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "nlsh/index/index_builder.py"))
-builder_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(builder_module)
-build_index_with_kahip = builder_module.build_index_with_kahip
-
-# Import from utils
-spec = importlib.util.spec_from_file_location("args",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils/args.py"))
-args_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(args_module)
-parse_and_validate_build_args = args_module.parse_and_validate_build_args
-print_build_summary = args_module.print_build_summary
-
-# Import data parsers
-spec = importlib.util.spec_from_file_location("sift_parser",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataparser/sift_parser.py"))
-sift_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(sift_module)
-SIFTParser = sift_module.SIFTParser
-
-spec = importlib.util.spec_from_file_location("mnist_parser",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataparser/mnist_parser.py"))
-mnist_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mnist_module)
-MNISTParser = mnist_module.MNISTParser
-
-# Import math utilities for distance computation
-spec = importlib.util.spec_from_file_location("math_utils",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils/math_utils.py"))
-math_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(math_module)
-euclidean_distances_matrix = math_module.euclidean_distances_matrix
+# Clean imports using standard Python paths
+from dataparser.sift_parser import SIFTParser
+from dataparser.mnist_parser import MNISTParser
+from utils.args import parse_and_validate_build_args, print_build_summary
+from utils.math_utils import euclidean_distances_matrix
+from nlsh.index.mlp_model import NeuralLSH_MLP
+from nlsh.index.index_builder import build_index_with_kahip
+from nlsh.graph.graph_build import GraphBuilder
 
 try:
     import kahip
@@ -115,6 +84,132 @@ def load_data(dataset_path, data_type):
     return data.astype(np.float32)
 
 
+def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'sift') -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Build k-NN graph efficiently, save to graph folder, and return CSR format.
+    
+    Βήματα:
+    1. Κατασκευή Γράφου k-NN (Βήμα 1) - με sklearn για efficiency
+    2. Προετοιμασία Γράφου (συμμετροποίηση, ανάθεση βαρών)
+    3. Αποθήκευση γράφου στο φάκελο nlsh/graph
+    4. Μετατροπή σε CSR format για KaHIP
+    
+    Args:
+        data: Data points (N, D)
+        k: Number of nearest neighbors
+        data_type: 'sift' or 'mnist' (for naming the output file)
+        
+    Returns:
+        Tuple of (xadj, adjncy, adjcwt, vwgt) arrays in CSR format
+    """
+    print(f"\n[ΒΗΜΑ 2α] Κατασκευή k-NN Γράφου...")
+    
+    n_points = len(data)
+    
+    # Step 1: Build directed k-NN graph using sklearn (memory efficient)
+    print(f"  - Κατασκευή γράφου k-πλησιέστερων γειτόνων (k={k}) - sklearn...")
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto').fit(data)
+    distances, indices = nbrs.kneighbors(data)
+    
+    # Build directed k-NN adjacency (skip self at index 0)
+    knn_adj = {}
+    for i in range(n_points):
+        # indices[i, 0] is self, so take indices[i, 1:k+1]
+        nearest_indices = indices[i, 1:k+1]
+        knn_adj[i] = set(nearest_indices)
+    
+    # Step 2: Symmetrize graph
+    print(f"  - Συμμετροποίηση γράφου...")
+    sym_adj = {i: set() for i in range(n_points)}
+    
+    for i in range(n_points):
+        sym_adj[i].update(knn_adj[i])
+        for j in knn_adj[i]:
+            sym_adj[j].add(i)
+    
+    # Step 3: Assign edge weights
+    print(f"  - Ανάθεση βαρών ακμών...")
+    edge_weights = {}
+    for i in range(n_points):
+        for j in sym_adj[i]:
+            if i < j:  # Avoid duplicate edges
+                is_mutual = (j in knn_adj[i]) and (i in knn_adj[j])
+                weight = 2 if is_mutual else 1
+                edge_weights[(i, j)] = weight
+    
+    # Step 4: Convert to CSR format
+    print(f"  - Μετατροπή σε CSR format...")
+    
+    # Build adjacency lists with weights for each vertex
+    vertex_neighbors = {i: [] for i in range(n_points)}
+    vertex_weights = {i: [] for i in range(n_points)}
+    
+    for (i, j), weight in edge_weights.items():
+        vertex_neighbors[i].append(j)
+        vertex_weights[i].append(weight)
+        vertex_neighbors[j].append(i)
+        vertex_weights[j].append(weight)
+    
+    # Sort neighbors for consistency
+    for i in range(n_points):
+        if vertex_neighbors[i]:
+            sorted_idx = np.argsort(vertex_neighbors[i])
+            vertex_neighbors[i] = [vertex_neighbors[i][idx] for idx in sorted_idx]
+            vertex_weights[i] = [vertex_weights[i][idx] for idx in sorted_idx]
+    
+    # Build CSR arrays
+    xadj = [0]
+    adjncy = []
+    adjcwt = []
+    
+    for i in range(n_points):
+        neighbors = vertex_neighbors[i]
+        weights = vertex_weights[i]
+        
+        adjncy.extend(neighbors)
+        adjcwt.extend(weights)
+        xadj.append(len(adjncy))
+    
+    xadj = np.array(xadj, dtype=np.int32)
+    adjncy = np.array(adjncy, dtype=np.int32)
+    adjcwt = np.array(adjcwt, dtype=np.int32)
+    vwgt = np.ones(n_points, dtype=np.int32)
+    
+    print(f"  ✓ CSR format: xadj={len(xadj)}, adjncy={len(adjncy)}, adjcwt={len(adjcwt)}")
+    print(f"    Total edges (undirected): {len(adjcwt) // 2}")
+    print(f"    Average degree: {len(adjncy) / n_points:.2f}")
+    
+    # Step 5: Save graph to file
+    print(f"  - Αποθήκευση γράφου στο φάκελο nlsh/graph...")
+    graph_dir = Path(__file__).parent.parent / "nlsh" / "graph"
+    graph_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Determine output filename
+    graph_filename = f"{data_type}_graph.bin"
+    graph_path = graph_dir / graph_filename
+    
+    # Save in binary format
+    import struct
+    with open(graph_path, 'wb') as f:
+        # Write header
+        f.write(struct.pack('<I', n_points))
+        f.write(struct.pack('<I', len(adjncy)))
+        
+        # Write adjacency list and weights
+        for i in range(n_points):
+            neighbors = vertex_neighbors[i]
+            weights = vertex_weights[i]
+            
+            for neighbor in neighbors:
+                f.write(struct.pack('<I', neighbor))
+            for weight in weights:
+                f.write(struct.pack('<I', weight))
+    
+    print(f"  ✓ Γράφος αποθηκεύτηκε: {graph_path}")
+    
+    return xadj, adjncy, adjcwt, vwgt
+
+
 def build_knn_graph(data: np.ndarray, k: int = 10) -> Tuple[Dict[int, Set[int]], Dict[int, Set[int]]]:
     """
     Build k-NN graph from data using sklearn's efficient implementation.
@@ -126,7 +221,6 @@ def build_knn_graph(data: np.ndarray, k: int = 10) -> Tuple[Dict[int, Set[int]],
     Returns:
         Tuple of (knn_adjacency, symmetric_adjacency)
     """
-    print(f"\n[Κατασκευή k-NN Γράφου]")
     print(f"  - Κατασκευή k-NN γράφου με k={k} (sklearn NearestNeighbors)...")
     
     n_points = len(data)
@@ -226,15 +320,12 @@ def main():
     n_points, dim = data.shape
     
     # =========================================================================
-    # ΒΗΜΑ 2: Κατασκευή k-NN Γράφου
+    # ΒΗΜΑ 2: Κατασκευή k-NN Γράφου και Διαμέριση με KaHIP
     # =========================================================================
     print(f"\n[ΒΗΜΑ 2] Κατασκευή k-NN Γράφου και Διαμέριση με KaHIP...")
     
-    # Build k-NN graph
-    knn_adj, sym_adj = build_knn_graph(data, k=args.knn)
-    
-    # Convert to CSR format
-    xadj, adjncy, adjcwt = convert_graph_to_csr(knn_adj, sym_adj, n_points)
+    # Build k-NN graph and save to file, get CSR format
+    xadj, adjncy, adjcwt, vwgt = build_knn_graph_and_save(data, k=args.knn, data_type=args.type)
     
     # =========================================================================
     # ΒΗΜΑ 3: Διαμέριση Γράφου με KaHIP
@@ -252,7 +343,7 @@ def main():
         try:
             # Call KaHIP for partitioning
             edgecut, partition_vector = kahip.kaffpa(
-                vwgt=np.ones(n_points, dtype=np.int32),
+                vwgt=vwgt,  # Vertex weights from CSR format
                 xadj=xadj,
                 adjcwt=adjcwt,
                 adjncy=adjncy,
