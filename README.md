@@ -108,7 +108,7 @@ python3 nlsh_build.py -d <dataset_file> -i <index_output> -type <sift|mnist> [op
 
 **Example:**
 ```bash
-python3 nlsh_build.py -d ../dataset/sift_learn.fvecs -i ../model_index/sift_index.bin -type sift -m 100 --knn 10 --layers 3
+python3 src/nlsh_build.py -d dataset/sift_learn.fvecs -i model_index/sift_index.bin -type sift -m 100 --knn 10 --layers 3
 ```
 
 ### Step 2: Search with Trained Model

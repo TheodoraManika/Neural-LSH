@@ -34,10 +34,15 @@ def validate_build_args(args) -> bool:
     if not args.type:
         raise ValueError("'-type' (data type) is required")
     
-    # Validate data file exists
+    # Validate data file exists (resolve relative paths from project root)
     data_file = Path(args.data)
+    if not data_file.is_absolute():
+        # Try relative to project root (parent of src directory)
+        project_root = Path(__file__).parent.parent
+        data_file = project_root / args.data
+    
     if not data_file.exists():
-        raise ValueError(f"Data file not found: {args.data}")
+        raise ValueError(f"Data file not found: {args.data} (resolved to: {data_file})")
     
     # Validate data type
     if args.type.lower() not in ['sift', 'mnist']:
