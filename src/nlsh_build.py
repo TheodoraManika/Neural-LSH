@@ -347,7 +347,8 @@ def main():
         model_config=model.get_config(),
         num_buckets=args.m,
         imbalance=args.imbalance,
-        kahip_mode=args.kahip_mode
+        kahip_mode=args.kahip_mode,
+        seed=args.seed
     )
     
     # Αποθήκευση

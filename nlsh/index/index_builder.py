@@ -27,7 +27,7 @@ class InvertedIndexBuilder:
         
     def partition_graph_with_kahip(self, xadj: np.ndarray, adjncy: np.ndarray, 
                                    adjcwt: np.ndarray = None, vwgt: np.ndarray = None,
-                                   imbalance: float = 0.03, mode: int = 2) -> np.ndarray:
+                                   imbalance: float = 0.03, mode: int = 2, seed: int = 1) -> np.ndarray:
         """
         Partition k-NN graph using KaHIP balanced graph partitioning algorithm.
         
@@ -38,6 +38,7 @@ class InvertedIndexBuilder:
             vwgt: Node weights array (list[int]) - node weights, usually all 1 (optional)
             imbalance: Allowed imbalance ε for balanced partitions (default: 0.03)
             mode: Preconfigure mode: 0=FAST, 1=ECO, 2=STRONG (default: 2)
+            seed: Random seed (default: 1)
             
         Returns:
             partition_vector: Array where partition_vector[i] = bucket_id for point i
@@ -64,17 +65,18 @@ class InvertedIndexBuilder:
         print(f"    • Imbalance (ε): {imbalance}")
         print(f"    • Mode: {['FAST', 'ECO', 'STRONG'][mode]}")
         
-        # Call KaHIP partitioning
+        # Call KaHIP partitioning with positional arguments in correct order
+        # kaffpa(vwgt, xadj, adjcwt, adjncy, nblocks, imbalance, suppress_output, seed, mode)
         edgecut, partition_vector = kahip.kaffpa(
-            vwgt=vwgt,
-            xadj=xadj,
-            adjcwt=adjcwt,
-            adjncy=adjncy,
-            nblocks=self.num_buckets,
-            imbalance=imbalance,
-            suppress_output=False,
-            seed=1,
-            mode=mode
+            vwgt,                   # arg0: vertex weights
+            xadj,                   # arg1: CSR index array
+            adjcwt,                 # arg2: edge weights
+            adjncy,                 # arg3: CSR adjacency array
+            self.num_buckets,       # arg4: nblocks
+            imbalance,              # arg5: imbalance factor
+            False,                  # arg6: suppress_output
+            seed,                   # arg7: seed
+            mode                    # arg8: mode
         )
         
         partition_vector = np.array(partition_vector, dtype=np.int32)
@@ -228,7 +230,8 @@ def build_index_with_kahip(
     model_config: Dict = None,
     num_buckets: int = 100,
     imbalance: float = 0.03,
-    kahip_mode: int = 2
+    kahip_mode: int = 2,
+    seed: int = 1
 ) -> NeuralLSHIndexFile:
     """
     Build complete Neural-LSH index using KaHIP graph partitioning.
@@ -249,6 +252,7 @@ def build_index_with_kahip(
         num_buckets: Number of target partitions (default: 100)
         imbalance: Allowed imbalance ε for balanced partitions (default: 0.03)
         kahip_mode: KaHIP mode: 0=FAST, 1=ECO, 2=STRONG (default: 2)
+        seed: Random seed (default: 1)
         
     Returns:
         NeuralLSHIndexFile object ready to save
@@ -269,7 +273,8 @@ def build_index_with_kahip(
         adjncy=adjncy,
         adjcwt=adjcwt,
         imbalance=imbalance,
-        mode=kahip_mode
+        mode=kahip_mode,
+        seed=seed
     )
     
     # Build inverted index from partition
