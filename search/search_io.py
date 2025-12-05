@@ -21,7 +21,7 @@ def load_index_and_model(index_path: str) -> Tuple[Dict, 'NeuralLSH_MLP', 'torch
         Tuple[index_data, model, device]
     """
     import torch
-    from nlsh.model_index_init.mlp_model import NeuralLSH_MLP
+    from nlsh.index.mlp_model import NeuralLSH_MLP
     
     if not os.path.exists(index_path):
         raise FileNotFoundError(f"Το αρχείο ευρετηρίου δεν βρέθηκε: {index_path}")
@@ -72,9 +72,22 @@ def load_data(data_path: str) -> np.ndarray:
     
     if data_path.endswith('.npy'):
         data = np.load(data_path)
+    elif data_path.endswith('.idx3-ubyte'):
+        # Support MNIST format
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from dataparser.mnist_parser import MNISTParser
+        images = MNISTParser.read_images(data_path)
+        data = MNISTParser.flatten_images(images)
+    elif data_path.endswith('.fvecs'):
+        # Support SIFT format
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from dataparser.sift_parser import SIFTParser
+        data = SIFTParser.read(data_path)
     else:
         raise NotImplementedError(f"Μορφή αρχείου {data_path} δεν υποστηρίζεται. "
-                                  "Χρησιμοποιήστε .npy αρχεία.")
+                                  "Χρησιμοποιήστε .npy, .idx3-ubyte, ή .fvecs αρχεία.")
     
     print(f"Φορτώθηκαν {len(data)} δεδομένα με διάσταση {data.shape[1]}")
     return data
@@ -97,9 +110,22 @@ def load_queries(queries_path: str) -> np.ndarray:
     
     if queries_path.endswith('.npy'):
         queries = np.load(queries_path)
+    elif queries_path.endswith('.idx3-ubyte'):
+        # Support MNIST format
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from dataparser.mnist_parser import MNISTParser
+        images = MNISTParser.read_images(queries_path)
+        queries = MNISTParser.flatten_images(images)
+    elif queries_path.endswith('.fvecs'):
+        # Support SIFT format
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from dataparser.sift_parser import SIFTParser
+        queries = SIFTParser.read(queries_path)
     else:
         raise NotImplementedError(f"Μορφή αρχείου {queries_path} δεν υποστηρίζεται. "
-                                  "Χρησιμοποιήστε .npy αρχεία.")
+                                  "Χρησιμοποιήστε .npy, .idx3-ubyte, ή .fvecs αρχεία.")
     
     print(f"Φορτώθηκαν {len(queries)} queries με διάσταση {queries.shape[1]}")
     return queries

@@ -17,9 +17,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import sys
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, Optional
 from pathlib import Path
 import struct
+import pickle
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -84,20 +85,25 @@ def load_data(dataset_path, data_type):
     return data.astype(np.float32)
 
 
-def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'sift') -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'sift', skip_build: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Build k-NN graph efficiently, save to graph folder, and return CSR format.
+    Load or build k-NN graph and return CSR format.
+    If skip_build=True and existing graph binary is found, load from it instead of rebuilding.
     
     Βήματα:
-    1. Κατασκευή Γράφου k-NN (Βήμα 1) - με sklearn για efficiency
-    2. Προετοιμασία Γράφου (συμμετροποίηση, ανάθεση βαρών)
-    3. Αποθήκευση γράφου στο φάκελο nlsh/graph
+    1. Έλεγχος για υπάρχουσα γράφο binary αν skip_build=True
+    2. Αν υπάρχει και skip_build=True, φόρτωση CSR από cache αν διαθέσιμο
+    3. Αν όχι, κατασκευή νέας γράφου:
+       - Κατασκευή Γράφου k-NN με sklearn
+       - Προετοιμασία Γράφου (συμμετροποίηση, ανάθεση βαρών)
+       - Αποθήκευση γράφου στο φάκελο nlsh/graph
     4. Μετατροπή σε CSR format για KaHIP
     
     Args:
         data: Data points (N, D)
         k: Number of nearest neighbors
         data_type: 'sift' or 'mnist' (for naming the output file)
+        skip_build: If True, load from existing graph instead of rebuilding
         
     Returns:
         Tuple of (xadj, adjncy, adjcwt, vwgt) arrays in CSR format
@@ -105,6 +111,32 @@ def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'si
     print(f"\n[ΒΗΜΑ 2α] Κατασκευή k-NN Γράφου...")
     
     n_points = len(data)
+    graph_dir = Path(__file__).parent.parent / "nlsh" / "graph"
+    graph_filename = f"{data_type}_graph.bin"
+    graph_path = graph_dir / graph_filename
+    
+    cache_dir = graph_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    csr_cache_file = cache_dir / f"{data_type}_csr.pkl"
+    
+    # Check if we should skip graph building
+    if skip_build and graph_path.exists():
+        print(f"  ✓ --skip-graph: Checking for cached CSR from {graph_filename}...")
+        
+        # Try to load cached CSR if available
+        if csr_cache_file.exists():
+            try:
+                with open(csr_cache_file, 'rb') as f:
+                    xadj, adjncy, adjcwt, vwgt = pickle.load(f)
+                print(f"  ✓ Loaded CSR from cache ({csr_cache_file.name})")
+                return xadj, adjncy, adjcwt, vwgt
+            except Exception as e:
+                print(f"  ⚠ Error loading CSR cache: {e}")
+        
+        print(f"  - Building CSR from existing graph binary...")
+        # Graph binary exists, build CSR from it
+        # For now, we'll rebuild the CSR from scratch to be safe
+        # since the binary format is complex
     
     # Step 1: Build directed k-NN graph using sklearn (memory efficient)
     print(f"  - Κατασκευή γράφου k-πλησιέστερων γειτόνων (k={k}) - sklearn...")
@@ -207,6 +239,14 @@ def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'si
     
     print(f"  ✓ Γράφος αποθηκεύτηκε: {graph_path}")
     
+    # Cache CSR representation for quick loading in future runs
+    try:
+        with open(csr_cache_file, 'wb') as f:
+            pickle.dump((xadj, adjncy, adjcwt, vwgt), f)
+        print(f"  ✓ CSR cached: {csr_cache_file.name}")
+    except Exception as e:
+        print(f"  ⚠ Could not cache CSR: {e}")
+    
     return xadj, adjncy, adjcwt, vwgt
 
 
@@ -293,6 +333,46 @@ def convert_graph_to_csr(knn_adj: Dict[int, Set[int]], sym_adj: Dict[int, Set[in
     return xadj, adjncy, adjcwt
 
 
+
+
+def get_kahip_cache_file(data_type: str, m: int) -> Path:
+    """Get cache file path for KaHIP partitioning results."""
+    cache_dir = Path('nlsh/graph/cache')
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir / f"{data_type}_kahip_m{m}.pkl"
+
+
+def load_cached_partition(data_type: str, m: int, n_points: int) -> Optional[np.ndarray]:
+    """Load cached KaHIP partition if it exists."""
+    cache_file = get_kahip_cache_file(data_type, m)
+    
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'rb') as f:
+                cached_partition = pickle.load(f)
+            # Verify cache is valid (correct size)
+            if len(cached_partition) == n_points:
+                print(f"  ✓ Loaded cached KaHIP partition from {cache_file.name}")
+                return cached_partition
+            else:
+                print(f"  ⚠ Cached partition has wrong size, will recompute")
+        except Exception as e:
+            print(f"  ⚠ Error loading cache: {e}")
+    
+    return None
+
+
+def save_partition_cache(partition_vector: np.ndarray, data_type: str, m: int) -> None:
+    """Save KaHIP partition to cache."""
+    cache_file = get_kahip_cache_file(data_type, m)
+    try:
+        with open(cache_file, 'wb') as f:
+            pickle.dump(partition_vector, f)
+        print(f"  ✓ Cached KaHIP partition to {cache_file.name}")
+    except Exception as e:
+        print(f"  ⚠ Error saving cache: {e}")
+
+
 def main():
     """Κύρια συνάρτηση για την κατασκευή του Neural-LSH ευρετηρίου."""
     # Parse and validate arguments using utils.args
@@ -325,12 +405,25 @@ def main():
     print(f"\n[ΒΗΜΑ 2] Κατασκευή k-NN Γράφου και Διαμέριση με KaHIP...")
     
     # Build k-NN graph and save to file, get CSR format
-    xadj, adjncy, adjcwt, vwgt = build_knn_graph_and_save(data, k=args.knn, data_type=args.type)
+    # Skip if --skip-graph flag is set
+    if args.skip_graph:
+        print(f"  ⚠ --skip-graph: Loading existing graph (not rebuilding)...")
+    
+    xadj, adjncy, adjcwt, vwgt = build_knn_graph_and_save(data, k=args.knn, data_type=args.type, skip_build=args.skip_graph)
     
     # =========================================================================
     # ΒΗΜΑ 3: Διαμέριση Γράφου με KaHIP
     # =========================================================================
-    if not KAHIP_AVAILABLE:
+    # Try to load cached partition if --skip-kahip is set
+    cached_partition = None
+    if args.skip_kahip:
+        print(f"  ⚠ --skip-kahip: Checking for cached KaHIP results...")
+        cached_partition = load_cached_partition(args.type, args.m, len(data))
+    
+    if cached_partition is not None:
+        partition_vector = cached_partition
+        print(f"  ✓ Using cached KaHIP partition (m={args.m})")
+    elif not KAHIP_AVAILABLE:
         print("\n  ⚠ KaHIP δεν είναι διαθέσιμο - χρησιμοποιώντας τυχαία διαμέριση")
         partition_vector = np.random.randint(0, args.m, size=n_points)
     else:
@@ -341,20 +434,22 @@ def main():
         print(f"    • Mode: {['FAST', 'ECO', 'STRONG'][args.kahip_mode]}")
         
         try:
-            # Call KaHIP for partitioning
+            # Call KaHIP for partitioning using positional arguments
             edgecut, partition_vector = kahip.kaffpa(
-                vwgt=vwgt,  # Vertex weights from CSR format
-                xadj=xadj,
-                adjcwt=adjcwt,
-                adjncy=adjncy,
-                nblocks=args.m,
-                imbalance=args.imbalance,
-                suppress_output=False,
-                seed=args.seed,
-                mode=args.kahip_mode
+                vwgt,                       # arg0: vertex weights
+                xadj,                       # arg1: CSR index array
+                adjcwt,                     # arg2: edge weights
+                adjncy,                     # arg3: CSR adjacency array
+                args.m,                     # arg4: nblocks
+                args.imbalance,             # arg5: imbalance factor
+                False,                      # arg6: suppress_output
+                args.seed,                  # arg7: seed
+                args.kahip_mode             # arg8: mode
             )
             partition_vector = np.array(partition_vector, dtype=np.int32)
             print(f"  ✓ KaHIP completed: Edge-cut = {edgecut}")
+            # Cache the partition result for future use
+            save_partition_cache(partition_vector, args.type, args.m)
         except Exception as e:
             print(f"  ✗ KaHIP error: {e} - falling back to random partition")
             partition_vector = np.random.randint(0, args.m, size=n_points)

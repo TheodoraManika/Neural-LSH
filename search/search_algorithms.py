@@ -12,10 +12,12 @@ import time
 import sys
 import os
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from nlsh.model_index_init.mlp_model import NeuralLSH_MLP
+from nlsh.index.mlp_model import NeuralLSH_MLP
 from utils.math_utils import compute_nearest_neighbors
 from search.search_metrics import (
     compute_true_distances,

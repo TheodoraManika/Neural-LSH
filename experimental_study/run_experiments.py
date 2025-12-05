@@ -46,7 +46,7 @@ class ExperimentOrchestrator:
                 cmd.extend(['--epochs'] + [str(x) for x in config_args['epochs']])
             if 'data' in config_args:
                 cmd.extend(['--data', config_args['data']])
-            if 'max_experiments' in config_args:
+            if 'max_experiments' in config_args and config_args['max_experiments'] is not None:
                 cmd.extend(['--max-experiments', str(config_args['max_experiments'])])
         
         try:

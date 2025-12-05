@@ -39,14 +39,15 @@ class ExperimentConfig:
     knn: int
     # Partitioning parameters
     m: int
-    imbalance: float = 0.03
-    kahip_mode: int = 2
     # MLP parameters
     layers: int
     nodes: int
     batch_size: int
     learning_rate: float
     epochs: int
+    # Optional parameters with defaults
+    imbalance: float = 0.03
+    kahip_mode: int = 2
     # Data
     data_type: str = 'sift'
     data_file: str = 'dataset/sift_base.fvecs'

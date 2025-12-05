@@ -187,6 +187,12 @@ Examples:
     parser.add_argument('--kahip_mode', type=int, default=2, choices=[0, 1, 2],
                        help='KaHIP mode: 0=FAST, 1=ECO, 2=STRONG (default: 2)')
     
+    # Skip expensive computations (for experiments)
+    parser.add_argument('--skip-graph', action='store_true',
+                       help='Skip k-NN graph construction (use existing graph)')
+    parser.add_argument('--skip-kahip', action='store_true',
+                       help='Skip KaHIP partitioning (use cached result if available)')
+    
     # MLP parameters
     parser.add_argument('--layers', type=int, default=3,
                        help='Number of MLP layers (default: 3)')
@@ -242,6 +248,8 @@ Examples:
                        help='Number of partitions to probe (multi-probe) (default: 5)')
     parser.add_argument('-range', '--range', type=str, default='true', choices=['true', 'false'],
                        help='Whether to perform range search (default: true)')
+    parser.add_argument('--seed', type=int, default=42,
+                       help='Random seed for reproducibility (default: 42)')
     
     return parser
 
