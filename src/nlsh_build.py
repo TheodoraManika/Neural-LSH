@@ -165,7 +165,15 @@ def main():
     # ΒΗΜΑ 1: Φόρτωση και Προεπεξεργασία Δεδομένων
     # =========================================================================
     print("[ΒΗΜΑ 1] Φόρτωση Δεδομένων...")
-    data = load_data(args.data, args.type)
+    data = load_data(args.data)  # load_data infers format from file extension
+    
+    # DEBUG: Περιορίστε τα δεδομένα σε 1000 σημεία για γρήγορο έλεγχο
+    # Αλλάξτε την τιμή 1000 ή σχολιάστε τις γραμμές παρακάτω για να χρησιμοποιήσετε όλα τα δεδομένα
+    DEBUG_LIMIT = 1000  # Αλλάξτε σε None για να χρησιμοποιήσετε όλα τα δεδομένα
+    if DEBUG_LIMIT is not None and len(data) > DEBUG_LIMIT:
+        data = data[:DEBUG_LIMIT]
+        print(f"  ⚠ DEBUG MODE: Περιορίστηκε στα πρώτα {DEBUG_LIMIT} σημεία")
+    
     n_points, dim = data.shape
     
     # =========================================================================

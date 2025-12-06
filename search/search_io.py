@@ -84,7 +84,7 @@ def load_data(data_path: str) -> np.ndarray:
         import sys
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from dataparser.sift_parser import SIFTParser
-        data = SIFTParser.read(data_path)
+        data = SIFTParser.read_fvecs(data_path)
     else:
         raise NotImplementedError(f"Μορφή αρχείου {data_path} δεν υποστηρίζεται. "
                                   "Χρησιμοποιήστε .npy, .idx3-ubyte, ή .fvecs αρχεία.")

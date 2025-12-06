@@ -49,34 +49,30 @@ class GraphBuilder:
         
     def build_knn_graph(self) -> Tuple[Dict[int, Set[int]], np.ndarray]:
         """
-        Build directed k-NN graph.
+        Build directed k-NN graph using memory-efficient sklearn implementation.
         
         Returns:
             Tuple of:
             - adjacency_dict: Dictionary mapping point index to set of k-NN indices
-            - distances: All pairwise distances matrix
+            - distances: Pairwise distances matrix (or None if too large)
         """
-        print(f"Computing pairwise distances for {self.n_points} points...")
-        distances = euclidean_distances_matrix(self.data)
+        from sklearn.neighbors import NearestNeighbors
         
-        # Build k-NN adjacency
+        print(f"Building k-NN graph with k={self.k} using sklearn (memory efficient)...")
+        
+        # Use sklearn's efficient KNN search (doesn't materialize full distance matrix)
+        nbrs = NearestNeighbors(n_neighbors=self.k+1, algorithm='auto').fit(self.data)
+        distances_knn, indices = nbrs.kneighbors(self.data)
+        
+        # Build directed k-NN adjacency (skip self at index 0)
         adjacency_dict = {}
-        print(f"Building k-NN graph with k={self.k}...")
-        
         for i in tqdm(range(self.n_points), desc="k-NN graph"):
-            # Get distances from point i to all others
-            dists = distances[i, :]
-            
-            # Find k nearest neighbors (excluding self, which has distance 0)
-            # We get k+1 and skip the first (self)
-            nearest_indices = np.argsort(dists)[:self.k + 1]
-            
-            # Remove self (distance 0)
-            nearest_indices = nearest_indices[nearest_indices != i][:self.k]
-            
+            # indices[i, 0] is self, so take indices[i, 1:k+1]
+            nearest_indices = indices[i, 1:self.k+1]
             adjacency_dict[i] = set(nearest_indices)
         
-        return adjacency_dict, distances
+        # Return adjacency dict and None for distances (not needed for memory efficiency)
+        return adjacency_dict, None
     
     def symmetrize_graph(self, adjacency_dict: Dict[int, Set[int]]) -> Dict[int, Set[int]]:
         """
@@ -136,6 +132,62 @@ class GraphBuilder:
                     edge_weights[(i, j)] = weight
         
         return edge_weights
+    
+    def to_csr_format(self,
+                     sym_adj: Dict[int, Set[int]], 
+                     edge_weights: Dict[Tuple[int, int], int]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Convert graph to CSR (Compressed Sparse Row) format for KaHIP.
+        
+        Returns:
+            Tuple of (xadj, adjncy, adjcwt, vwgt) arrays:
+            - xadj: Row pointers (cumulative neighbor counts)
+            - adjncy: Neighbor indices
+            - adjcwt: Edge weights
+            - vwgt: Vertex weights (all 1)
+        """
+        print("Converting to CSR format...")
+        
+        # Build adjacency lists with weights for each vertex
+        vertex_neighbors = {i: [] for i in range(self.n_points)}
+        vertex_weights = {i: [] for i in range(self.n_points)}
+        
+        for (i, j), weight in edge_weights.items():
+            vertex_neighbors[i].append(j)
+            vertex_weights[i].append(weight)
+            vertex_neighbors[j].append(i)
+            vertex_weights[j].append(weight)
+        
+        # Sort neighbors for consistency
+        for i in range(self.n_points):
+            if vertex_neighbors[i]:
+                sorted_idx = np.argsort(vertex_neighbors[i])
+                vertex_neighbors[i] = [vertex_neighbors[i][idx] for idx in sorted_idx]
+                vertex_weights[i] = [vertex_weights[i][idx] for idx in sorted_idx]
+        
+        # Build CSR arrays
+        xadj = [0]
+        adjncy = []
+        adjcwt = []
+        
+        for i in range(self.n_points):
+            neighbors = vertex_neighbors[i]
+            weights = vertex_weights[i]
+            
+            adjncy.extend(neighbors)
+            adjcwt.extend(weights)
+            xadj.append(len(adjncy))
+        
+        xadj = np.array(xadj, dtype=np.int32)
+        adjncy = np.array(adjncy, dtype=np.int32)
+        adjcwt = np.array(adjcwt, dtype=np.int32)
+        vwgt = np.ones(self.n_points, dtype=np.int32)
+        
+        print(f"  ✓ CSR format: xadj={len(xadj)}, adjncy={len(adjncy)}, adjcwt={len(adjcwt)}")
+        print(f"    Total edges (undirected): {len(adjcwt) // 2}")
+        print(f"    Average degree: {len(adjncy) / self.n_points:.2f}")
+        
+        return xadj, adjncy, adjcwt, vwgt
     
     def save_graph_kahip_format(self, 
                                sym_adj: Dict[int, Set[int]], 
