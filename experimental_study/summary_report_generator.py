@@ -63,8 +63,11 @@ class SearchMetrics:
 class SummaryReportGenerator:
     """Generates comprehensive summary reports."""
     
-    def __init__(self, workspace_dir: str = '/Users/theodora/Desktop/uni/project/Neural-LSH',
+    def __init__(self, workspace_dir: str = None,
                  results_file: str = 'experimental_study/grid_search_results.json'):
+        # Use current directory if not specified
+        if workspace_dir is None:
+            workspace_dir = str(Path.cwd())
         self.workspace_dir = Path(workspace_dir)
         self.results_file = self.workspace_dir / results_file
         self.results = self._load_results()

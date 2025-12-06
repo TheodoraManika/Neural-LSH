@@ -83,8 +83,11 @@ class ExperimentResult:
 class ExperimentRunner:
     """Manages experimental studies for Neural-LSH hyperparameter optimization."""
     
-    def __init__(self, workspace_dir: str = '/Users/theodora/Desktop/uni/project/Neural-LSH',
+    def __init__(self, workspace_dir: str = None,
                  results_dir: str = 'experimental_study/results'):
+        # Use current directory if not specified
+        if workspace_dir is None:
+            workspace_dir = str(Path.cwd())
         self.workspace_dir = Path(workspace_dir)
         self.results_dir = self.workspace_dir / results_dir
         self.results_dir.mkdir(parents=True, exist_ok=True)

@@ -20,7 +20,6 @@ import time
 class ExperimentOrchestrator:
     """Orchestrates the entire experimental study."""
     
-    #def __init__(self, workspace_dir: str = '/Users/theodora/Desktop/uni/project/Neural-LSH'):
     def __init__(self, workspace_dir: str = None):
         # Use current directory if not specified
         if workspace_dir is None:

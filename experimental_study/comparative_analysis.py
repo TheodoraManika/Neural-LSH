@@ -60,9 +60,12 @@ class ComparativeAnalyzer:
     """Analyzes and compares Neural-LSH with old methods."""
     
     def __init__(self, 
-                 workspace_dir: str = '/Users/theodora/Desktop/uni/project/Neural-LSH',
+                 workspace_dir: str = None,
                  old_results_file: str = 'old_results/REPORT_TESTS_SUMMARY.json',
                  nlsh_results_file: str = 'experimental_study/grid_search_results.json'):
+        # Use current directory if not specified
+        if workspace_dir is None:
+            workspace_dir = str(Path.cwd())
         self.workspace_dir = Path(workspace_dir)
         self.old_results_file = self.workspace_dir / old_results_file
         self.nlsh_results_file = self.workspace_dir / nlsh_results_file
