@@ -1,10 +1,19 @@
+# Dataset files - large files
 dataset/*.fvecs
+dataset/*.idx3-ubyte
+dataset/*.npy
+nlsh/graph/*.bin
+nlsh/graph/cache/*.pkl
+
 *.pdf
 *.o
 *.d
 
 # Ignore large result files
 results/report_tests/*
+results/*.txt
+results/*.pkl
+results/*.json
 
 # Python
 __pycache__/
@@ -26,6 +35,7 @@ env/
 *.pth
 *.pt
 *.ckpt
+model_index/*.bin
 
 # Data files
 *.ivecs
