@@ -33,6 +33,7 @@ from utils.math_utils import euclidean_distances_matrix
 from nlsh.index.mlp_model import NeuralLSH_MLP
 from nlsh.index.index_builder import build_index_with_kahip
 from nlsh.graph.graph_build import GraphBuilder
+from search.search_io import load_data  # Use shared data loading function
 
 try:
     import kahip
@@ -40,64 +41,18 @@ try:
 except ImportError:
     KAHIP_AVAILABLE = False
 
-# Use sklearn for efficient nearest neighbor search
-from sklearn.neighbors import NearestNeighbors
-
-
-def load_data(dataset_path, data_type):
-    """
-    Φόρτωση δεδομένων από αρχείο χρησιμοποιώντας τους κατάλληλους parsers.
-    
-    Args:
-        dataset_path: Διαδρομή προς το αρχείο δεδομένων
-        data_type: Τύπος δεδομένων ('sift' ή 'mnist')
-        
-    Returns:
-        numpy array με τα δεδομένα
-    """
-    # Resolve relative paths based on the script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    dataset_path = os.path.join(project_root, dataset_path) if not os.path.isabs(dataset_path) else dataset_path
-    
-    print(f"Φόρτωση δεδομένων από: {dataset_path} (type: {data_type})")
-    
-    if dataset_path.endswith('.npy'):
-        # Load from numpy format
-        data = np.load(dataset_path)
-    elif data_type.lower() == 'sift':
-        # Load SIFT data using SIFTParser
-        parser = SIFTParser()
-        data = parser.read_fvecs(dataset_path)
-    elif data_type.lower() == 'mnist':
-        # Load MNIST data using MNISTParser
-        parser = MNISTParser()
-        images = parser.read_images(dataset_path)
-        # Flatten images from (N, 28, 28) to (N, 784)
-        data = parser.flatten_images(images)
-        # Normalize to [0, 1]
-        data = parser.normalize_images(data)
-    else:
-        raise ValueError(f"Άγνωστος τύπος δεδομένων: {data_type}. "
-                        "Χρησιμοποιήστε 'sift', 'mnist' ή .npy αρχεία.")
-    
-    print(f"Φορτώθηκαν {len(data)} σημεία με διάσταση {data.shape[1]}")
-    return data.astype(np.float32)
-
 
 def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'sift', skip_build: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Load or build k-NN graph and return CSR format.
-    If skip_build=True and existing graph binary is found, load from it instead of rebuilding.
+    Build k-NN graph using GraphBuilder from graph_build.py and return CSR format.
+    If skip_build=True and existing graph binary is found, load it instead of rebuilding.
     
-    Βήματα:
-    1. Έλεγχος για υπάρχουσα γράφο binary αν skip_build=True
-    2. Αν υπάρχει και skip_build=True, φόρτωση CSR από cache αν διαθέσιμο
-    3. Αν όχι, κατασκευή νέας γράφου:
-       - Κατασκευή Γράφου k-NN με sklearn
-       - Προετοιμασία Γράφου (συμμετροποίηση, ανάθεση βαρών)
-       - Αποθήκευση γράφου στο φάκελο nlsh/graph
-    4. Μετατροπή σε CSR format για KaHIP
+    Uses the GraphBuilder class from nlsh.graph.graph_build which handles:
+    1. k-NN graph construction
+    2. Graph symmetrization
+    3. Edge weight assignment
+    4. CSR format conversion
+    5. Binary graph saving
     
     Args:
         data: Data points (N, D)
@@ -112,225 +67,39 @@ def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'si
     
     n_points = len(data)
     graph_dir = Path(__file__).parent.parent / "nlsh" / "graph"
+    graph_dir.mkdir(parents=True, exist_ok=True)
     graph_filename = f"{data_type}_graph.bin"
     graph_path = graph_dir / graph_filename
-    
-    cache_dir = graph_dir / "cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    csr_cache_file = cache_dir / f"{data_type}_csr.pkl"
     
     # Check if we should skip graph building
     if skip_build and graph_path.exists():
-        print(f"  ✓ --skip-graph: Checking for cached CSR from {graph_filename}...")
-        
-        # Try to load cached CSR if available
-        if csr_cache_file.exists():
-            try:
-                with open(csr_cache_file, 'rb') as f:
-                    xadj, adjncy, adjcwt, vwgt = pickle.load(f)
-                print(f"  ✓ Loaded CSR from cache ({csr_cache_file.name})")
-                return xadj, adjncy, adjcwt, vwgt
-            except Exception as e:
-                print(f"  ⚠ Error loading CSR cache: {e}")
-        
-        print(f"  - Building CSR from existing graph binary...")
-        # Graph binary exists, build CSR from it
-        # For now, we'll rebuild the CSR from scratch to be safe
-        # since the binary format is complex
+        print(f"  ✓ --skip-graph: Loading existing graph from {graph_filename}...")
+        # TODO: Implement loading from existing graph binary
+        # For now, continue to rebuild
     
-    # Step 1: Build directed k-NN graph using sklearn (memory efficient)
-    print(f"  - Κατασκευή γράφου k-πλησιέστερων γειτόνων (k={k}) - sklearn...")
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto').fit(data)
-    distances, indices = nbrs.kneighbors(data)
+    # Use GraphBuilder class to construct graph with all preprocessing
+    print(f"  - Using GraphBuilder class from graph_build.py...")
+    graph_builder = GraphBuilder(data, k=k, metric='euclidean')
     
-    # Build directed k-NN adjacency (skip self at index 0)
-    knn_adj = {}
-    for i in range(n_points):
-        # indices[i, 0] is self, so take indices[i, 1:k+1]
-        nearest_indices = indices[i, 1:k+1]
-        knn_adj[i] = set(nearest_indices)
+    # Step 1: Build directed k-NN graph
+    knn_adj, distances = graph_builder.build_knn_graph()
     
     # Step 2: Symmetrize graph
-    print(f"  - Συμμετροποίηση γράφου...")
-    sym_adj = {i: set() for i in range(n_points)}
-    
-    for i in range(n_points):
-        sym_adj[i].update(knn_adj[i])
-        for j in knn_adj[i]:
-            sym_adj[j].add(i)
+    sym_adj = graph_builder.symmetrize_graph(knn_adj)
     
     # Step 3: Assign edge weights
-    print(f"  - Ανάθεση βαρών ακμών...")
-    edge_weights = {}
-    for i in range(n_points):
-        for j in sym_adj[i]:
-            if i < j:  # Avoid duplicate edges
-                is_mutual = (j in knn_adj[i]) and (i in knn_adj[j])
-                weight = 2 if is_mutual else 1
-                edge_weights[(i, j)] = weight
+    edge_weights = graph_builder.assign_edge_weights(knn_adj, sym_adj)
     
     # Step 4: Convert to CSR format
-    print(f"  - Μετατροπή σε CSR format...")
+    xadj, adjncy, adjcwt, vwgt = graph_builder.to_csr_format(sym_adj, edge_weights)
     
-    # Build adjacency lists with weights for each vertex
-    vertex_neighbors = {i: [] for i in range(n_points)}
-    vertex_weights = {i: [] for i in range(n_points)}
-    
-    for (i, j), weight in edge_weights.items():
-        vertex_neighbors[i].append(j)
-        vertex_weights[i].append(weight)
-        vertex_neighbors[j].append(i)
-        vertex_weights[j].append(weight)
-    
-    # Sort neighbors for consistency
-    for i in range(n_points):
-        if vertex_neighbors[i]:
-            sorted_idx = np.argsort(vertex_neighbors[i])
-            vertex_neighbors[i] = [vertex_neighbors[i][idx] for idx in sorted_idx]
-            vertex_weights[i] = [vertex_weights[i][idx] for idx in sorted_idx]
-    
-    # Build CSR arrays
-    xadj = [0]
-    adjncy = []
-    adjcwt = []
-    
-    for i in range(n_points):
-        neighbors = vertex_neighbors[i]
-        weights = vertex_weights[i]
-        
-        adjncy.extend(neighbors)
-        adjcwt.extend(weights)
-        xadj.append(len(adjncy))
-    
-    xadj = np.array(xadj, dtype=np.int32)
-    adjncy = np.array(adjncy, dtype=np.int32)
-    adjcwt = np.array(adjcwt, dtype=np.int32)
-    vwgt = np.ones(n_points, dtype=np.int32)
-    
-    print(f"  ✓ CSR format: xadj={len(xadj)}, adjncy={len(adjncy)}, adjcwt={len(adjcwt)}")
-    print(f"    Total edges (undirected): {len(adjcwt) // 2}")
-    print(f"    Average degree: {len(adjncy) / n_points:.2f}")
-    
-    # Step 5: Save graph to file
-    print(f"  - Αποθήκευση γράφου στο φάκελο nlsh/graph...")
-    graph_dir = Path(__file__).parent.parent / "nlsh" / "graph"
-    graph_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Determine output filename
-    graph_filename = f"{data_type}_graph.bin"
-    graph_path = graph_dir / graph_filename
-    
-    # Save in binary format
-    import struct
-    with open(graph_path, 'wb') as f:
-        # Write header
-        f.write(struct.pack('<I', n_points))
-        f.write(struct.pack('<I', len(adjncy)))
-        
-        # Write adjacency list and weights
-        for i in range(n_points):
-            neighbors = vertex_neighbors[i]
-            weights = vertex_weights[i]
-            
-            for neighbor in neighbors:
-                f.write(struct.pack('<I', neighbor))
-            for weight in weights:
-                f.write(struct.pack('<I', weight))
+    # Step 5: Save graph to binary file
+    output_path = str(graph_path)
+    graph_builder.save_graph_kahip_format(sym_adj, edge_weights, output_path)
     
     print(f"  ✓ Γράφος αποθηκεύτηκε: {graph_path}")
     
-    # Cache CSR representation for quick loading in future runs
-    try:
-        with open(csr_cache_file, 'wb') as f:
-            pickle.dump((xadj, adjncy, adjcwt, vwgt), f)
-        print(f"  ✓ CSR cached: {csr_cache_file.name}")
-    except Exception as e:
-        print(f"  ⚠ Could not cache CSR: {e}")
-    
     return xadj, adjncy, adjcwt, vwgt
-
-
-def build_knn_graph(data: np.ndarray, k: int = 10) -> Tuple[Dict[int, Set[int]], Dict[int, Set[int]]]:
-    """
-    Build k-NN graph from data using sklearn's efficient implementation.
-    
-    Args:
-        data: Data points (N, D)
-        k: Number of nearest neighbors
-        
-    Returns:
-        Tuple of (knn_adjacency, symmetric_adjacency)
-    """
-    print(f"  - Κατασκευή k-NN γράφου με k={k} (sklearn NearestNeighbors)...")
-    
-    n_points = len(data)
-    
-    # Use sklearn's efficient KNN search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto').fit(data)
-    distances, indices = nbrs.kneighbors(data)
-    
-    # Build directed k-NN graph (skip self at index 0)
-    knn_adjacency = {}
-    for i in range(n_points):
-        # indices[i, 0] is self, so take indices[i, 1:k+1]
-        nearest_indices = indices[i, 1:k+1]
-        knn_adjacency[i] = set(nearest_indices)
-    
-    # Symmetrize graph
-    print(f"  - Συμμετροποίηση γράφου...")
-    symmetric_adjacency = {i: set() for i in range(n_points)}
-    
-    for i in range(n_points):
-        symmetric_adjacency[i].update(knn_adjacency[i])
-        for j in knn_adjacency[i]:
-            symmetric_adjacency[j].add(i)
-    
-    total_edges = sum(len(neighbors) for neighbors in symmetric_adjacency.values()) // 2
-    print(f"  ✓ Γράφος κατασκευάστηκε: {total_edges} ακμές")
-    
-    return knn_adjacency, symmetric_adjacency
-
-
-def convert_graph_to_csr(knn_adj: Dict[int, Set[int]], sym_adj: Dict[int, Set[int]], 
-                        n_points: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Convert symmetric graph to CSR format for KaHIP.
-    
-    Args:
-        knn_adj: Directed k-NN adjacency
-        sym_adj: Symmetric adjacency
-        n_points: Total number of points
-        
-    Returns:
-        Tuple of (xadj, adjncy, adjcwt) arrays
-    """
-    print(f"  - Μετατροπή σε CSR format για KaHIP...")
-    
-    # Build CSR arrays
-    xadj = [0]  # First element is always 0
-    adjncy = []
-    adjcwt = []
-    
-    for i in range(n_points):
-        neighbors = sorted(list(sym_adj[i]))
-        
-        for j in neighbors:
-            adjncy.append(j)
-            
-            # Assign weights: 2 if mutual, 1 if one-sided
-            is_mutual = (j in knn_adj[i]) and (i in knn_adj[j])
-            weight = 2 if is_mutual else 1
-            adjcwt.append(weight)
-        
-        xadj.append(len(adjncy))
-    
-    xadj = np.array(xadj, dtype=np.int32)
-    adjncy = np.array(adjncy, dtype=np.int32)
-    adjcwt = np.array(adjcwt, dtype=np.int32)
-    
-    print(f"  ✓ CSR format: xadj={len(xadj)}, adjncy={len(adjncy)}, adjcwt={len(adjcwt)}")
-    
-    return xadj, adjncy, adjcwt
 
 
 
