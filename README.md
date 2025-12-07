@@ -1,3 +1,16 @@
+Στοιχεία
+
+Φοιτητές:
+
+  Τσάκωνα Μυρτώ - [1115202100188] - [sdi2100188@di.uoa.gr]
+  Μανίκα Θεοδώρα - [1115202100267] - [sdi2100267@di.uoa.gr]
+
+Ακαδημαϊκό Έτος: 2025-2026
+
+Μάθημα: Ανάπτυξη Λογισμικού για Αλγοριθμικά Προβλήματα
+
+Ίδρυμα: ΕΚΠΑ
+
 # Neural-LSH: Neural Learned Search Hierarchy
 
 A Python implementation of Neural-LSH for approximate k-NN search using learned hash functions and neural networks.
@@ -31,11 +44,11 @@ Neural-LSH combines:
 - **Fast search**: 4-step approximate search pipeline achieving 100-500ms per query
 
 This implementation supports:
-- ✓ SIFT vectors (128-dim, 1M vectors)
-- ✓ MNIST images (784-dim, 60k vectors)
-- ✓ Custom datasets via NumPy arrays
-- ✓ Configurable MLP architectures (layers, nodes)
-- ✓ Grid search over hyperparameters
+- SIFT vectors (128-dim, 1M vectors)
+- MNIST images (784-dim, 60k vectors)
+- Custom datasets via NumPy arrays
+- Configurable MLP architectures (layers, nodes)
+- Grid search over hyperparameters
 
 ---
 
@@ -55,9 +68,6 @@ python3 src/nlsh_search.py \
   --query dataset/sift_query.fvecs \
   --type sift \
   -T 2 -L 10
-
-# 4. View results
-cat results/reports/latest_results.md
 ```
 
 ---
@@ -111,10 +121,15 @@ dataparser/
 
 ```
 experimental_study/
-├── experiment_runner.py   # Grid search orchestrator
-├── comparative_analysis.py  # Compare methods
-├── summary_report_generator.py  # Report generation
-└── run_experiment_scenario.sh   # Predefined scenarios
+├── experiment_runner.py            # Grid search orchestrator
+├── experiment_runner_extended.py   # Extended experiments with novel scenarios
+├── comparative_analysis.py         # Compare methods
+├── summary_report_generator.py     # Report generation
+└── EXPERIMENTAL_RESULTS_NEURAL_LSH.md  # Comprehensive results report
+
+scripts/
+├── run_experiment_scenario.sh      # Predefined experimental scenarios
+└── setup_mac.sh                    # macOS setup script
 ```
 
 ### Data & Results
@@ -133,19 +148,11 @@ cache/                # Build artifacts & caches
 └── brute_force/      # Ground truth distances (.npz files)
 
 results/              # Experiment outputs
-├── reports/          # JSON/Markdown reports
-└── archive/          # Old experimental results
+└── [search/build results stored here]
 
-(Note: Index files are now stored in cache/index_model/)
-```
-
-### Configuration Files
-
-```
-requirements.txt      # Python dependencies
-.gitignore           # Git ignore rules
-scripts/
-└── setup_mac.sh     # Setup script for macOS
+build/                # Legacy build folder (deprecated)
+├── graph/            # Legacy graph building
+└── index_model/      # Legacy index building (superseded by nlsh/)
 ```
 ---
 
@@ -189,13 +196,6 @@ python3 src/nlsh_build.py \
   --nodes 64 \
   --epochs 10
 ```
-
-**Output Files**:
-- `cache/knn_graphs/sift_knn15.npz` - k-NN graph
-- `cache/partition_caches/sift_kahip_m100.pkl` - Partition assignment
-- `cache/index_model/nlsh_sift_k15_m100_l2_n64_e10.pkl` - Final index
-- Console output with timing and statistics
-
 ---
 
 #### `src/nlsh_search.py` - SEARCH SCENARIO
@@ -229,46 +229,9 @@ python3 src/nlsh_search.py \
   -T 2 \
   -L 10
 ```
-
-**Output Files**:
-- `results/search_results_<timestamp>.json` - Result details
-- `results/search_results_<timestamp>.md` - Summary report
-- Console output with metrics (Recall, QPS, AF)
-
 ---
 
-### Search Components
-
-#### `search/search_io.py` - Data I/O Utilities (Shared)
-- **Purpose**: Shared data loading for both build and search
-- **Key Functions**:
-  - `load_data()` - Load vectors from files
-  - `load_index_and_model()` - Load trained index
-  - `load_queries()` - Load query vectors
-  - `save_results()` - Save search results
-
-#### `search/search_algorithms.py` - LSH Search Algorithm
-- **Purpose**: Implements the 4-step search pipeline
-- **Key Function**: `neural_lsh_search(query, index, model, T, L)`
-- **Returns**: Top-L neighbor indices and distances
-
-#### `search/search_metrics.py` - Evaluation Metrics
-- **Purpose**: Compute performance metrics
-- **Key Functions**:
-  - `compute_recall()` - Recall@k metric
-  - `compute_qps()` - Queries per second
-  - `compute_average_accuracy_fraction()` - Approximation factor (AF)
-  - `compute_mrr()` - Mean reciprocal rank
-
-#### `search/search_output.py` - Result Formatting
-- **Purpose**: Format and display results
-- **Key Functions**:
-  - `format_results()` - JSON/Markdown formatting
-  - `print_report()` - Console output
-
-#### `search/search_input.py` - Query Input Handling
-- **Purpose**: Load and preprocess queries
-- **Key Function**: `load_queries()`
+### Additional Utilities
 
 #### `search/create_brute_force_cache.py` - Ground Truth Generator
 - **Purpose**: Pre-compute exact k-NN distances for evaluation
@@ -323,28 +286,6 @@ python3 src/nlsh_search.py \
   - `print_header()` - Console headers
   - `print_summary()` - Summary printing
   - `format_time()` - Human-readable timing
-
----
-
-### Experimental Framework
-
-#### `experimental_study/experiment_runner.py`
-- **Purpose**: Grid search over hyperparameters
-- **Tested Ranges**:
-  - k (k-NN): [10, 15, 20, 25]
-  - m (partitions): [50, 100, 150, 200]
-  - layers: [2, 3, 4]
-  - nodes: [32, 64, 128]
-  - epochs: [5, 10, 15, 20]
-- **Output**: Experiment results in `results/`
-
-#### `experimental_study/comparative_analysis.py`
-- **Purpose**: Compare Neural-LSH with baselines
-- **Baselines**: Brute-force, other approximate methods
-
-#### `experimental_study/summary_report_generator.py`
-- **Purpose**: Aggregate results and generate reports
-- **Output**: JSON and Markdown reports
 
 ---
 
@@ -479,9 +420,6 @@ python3 src/nlsh_build.py \
   --batch-size 128
 ```
 
-**Expected Time**: 2-5 minutes
-**Output Index Size**: ~100-150 MB
-
 #### MNIST Build
 ```bash
 python3 src/nlsh_build.py \
@@ -490,9 +428,6 @@ python3 src/nlsh_build.py \
   --knn 20 \
   --m 50
 ```
-
-**Expected Time**: 10-20 seconds
-**Output Index Size**: ~20-30 MB
 
 ### Build Output
 
@@ -886,5 +821,3 @@ Academic Research Project - Use for educational and research purposes
 ## Support
 
 For issues, questions, or contributions, please refer to the project repository.
-
-**Last Updated**: December 2025
