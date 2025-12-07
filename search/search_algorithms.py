@@ -18,7 +18,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from nlsh.index.mlp_model import NeuralLSH_MLP
+from build.index_model.mlp_model import NeuralLSH_MLP
 from utils.math_utils import compute_nearest_neighbors
 from search.search_metrics import (
     compute_true_distances,

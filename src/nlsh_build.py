@@ -30,9 +30,9 @@ from dataparser.sift_parser import SIFTParser
 from dataparser.mnist_parser import MNISTParser
 from utils.args import parse_and_validate_build_args, print_build_summary
 from utils.math_utils import euclidean_distances_matrix
-from nlsh.index.mlp_model import NeuralLSH_MLP
-from nlsh.index.index_builder import build_index_with_kahip
-from nlsh.graph.graph_build import GraphBuilder, graph_cache_exists, get_graph_cache_path
+from build.index_model.mlp_model import NeuralLSH_MLP
+from build.index_model.index_builder import build_index_with_kahip
+from build.graph.graph_build import GraphBuilder, graph_cache_exists, get_graph_cache_path
 from search.search_input import load_data  # Use shared data loading function
 
 try:
