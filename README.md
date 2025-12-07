@@ -66,35 +66,87 @@ cat results/reports/latest_results.md
 
 ### Core Implementation
 
-#### `nlsh/graph/graph_build.py` - k-NN Graph Construction
-- **Purpose**: Builds k-NN graphs from vector data
-- **Main Class**: `GraphBuilder`
-- **Key Methods**:
-  - `build_knn_graph(data, k)` - Constructs k-NN graph using sklearn
-  - `symmetrize_graph()` - Makes graph undirected
-  - `assign_edge_weights()` - Assigns edge weights based on distances
-  - `to_csr_format()` - Converts to sparse CSR format
-  - `save_graph_kahip_format()` - Saves in KaHIP binary format
-- **Output**: Graph files in `cache/knn_graphs/`
+```
+src/
+├── nlsh_build.py          # Main index building script
+└── nlsh_search.py         # Main search script
+```
 
-#### `nlsh/index/mlp_model.py` - Neural Classifier
-- **Purpose**: MLP trained to predict optimal hash bucket assignments
-- **Main Class**: `NeuralLSH_MLP`
-- **Architecture**: 3-4 layer MLP with ReLU activation
-- **Input**: Query vectors
-- **Output**: Predicted partition/bucket indices
-- **Training**: Supervised learning on graph partitions
+### Neural-LSH Library
 
-#### `nlsh/index/index_builder.py` - Index Creation
-- **Purpose**: Builds inverted file index structure
-- **Main Function**: `build_index_with_kahip(graph, data, m, layers, nodes, epochs)`
-- **Steps**:
-  1. Graph partitioning using KaHIP
-  2. MLP training on partition assignments
-  3. Inverted file creation (point → bucket mapping)
-  4. Index serialization to pickle
-- **Output**: Index files in `cache/index_model/`
+```
+nlsh/
+├── __init__.py
+├── graph/                 # k-NN graph operations
+│   ├── __init__.py
+│   ├── knn_graph.py      # k-NN graph construction
+│   └── graph_build.py    # Graph building utilities
+└── index/                # Index and model operations
+    ├── __init__.py
+    ├── index_builder.py  # Index construction
+    └── mlp_model.py      # MLP model definition
+```
 
+### Supporting Modules
+
+```
+search/
+├── search_algorithms.py   # LSH and exact search algorithms
+├── search_io.py          # Data loading (SIFT, MNIST, fvecs, idx3-ubyte)
+├── search_metrics.py     # Recall, AF, QPS calculations
+├── search_output.py      # Result formatting
+└── create_brute_force_cache.py  # Pre-compute ground truth distances
+
+utils/
+├── args.py               # Argument parsing
+├── math_utils.py         # Mathematical utilities
+└── output.py             # Output formatting
+
+dataparser/
+├── sift_parser.py        # SIFT .fvecs format handler
+└── mnist_parser.py       # MNIST idx3-ubyte format handler
+```
+
+### Experimental Framework
+
+```
+experimental_study/
+├── experiment_runner.py   # Grid search orchestrator
+├── comparative_analysis.py  # Compare methods
+├── summary_report_generator.py  # Report generation
+└── run_experiment_scenario.sh   # Predefined scenarios
+```
+
+### Data & Results
+
+```
+dataset/              # Input data (downloaded separately)
+├── sift_base.fvecs   # 1M SIFT vectors
+├── sift_query.fvecs  # SIFT queries
+├── train-images.idx3-ubyte  # 60k MNIST training
+└── t10k-images.idx3-ubyte   # 10k MNIST test
+
+cache/                # Build artifacts & caches
+├── knn_graphs/       # k-NN graph cache (.npz files)
+├── partition_caches/ # KaHIP partition results (.pkl files)
+├── index_model/      # Built Neural-LSH indices (.pkl files)
+└── brute_force/      # Ground truth distances (.npz files)
+
+results/              # Experiment outputs
+├── reports/          # JSON/Markdown reports
+└── archive/          # Old experimental results
+
+(Note: Index files are now stored in cache/index_model/)
+```
+
+### Configuration Files
+
+```
+requirements.txt      # Python dependencies
+.gitignore           # Git ignore rules
+scripts/
+└── setup_mac.sh     # Setup script for macOS
+```
 ---
 
 ### Main Entry Points
