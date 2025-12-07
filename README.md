@@ -1,144 +1,143 @@
-# Neural-LSH: Neural Learned Search Hierarchy
+# Neural-LSH: Νευρωνική Ιεραρχία Μάθησης Αναζήτησης
 
-Στοιχεία
+## Πληροφορίες Προγράμματος
 
-Φοιτητές:
+**Φοιτητές:**
+- Τσάκωνα Μυρτώ - 1115202100188 - sdi2100188@di.uoa.gr
+- Μανίκα Θεοδώρα - 1115202100267 - sdi2100267@di.uoa.gr
 
-  Τσάκωνα Μυρτώ - [1115202100188] - [sdi2100188@di.uoa.gr]
-  Μανίκα Θεοδώρα - [1115202100267] - [sdi2100267@di.uoa.gr]
+**Ακαδημαϊκό Έτος:** 2025-2026
 
-Ακαδημαϊκό Έτος: 2025-2026
+**Μάθημα:** Ανάπτυξη Λογισμικού για Αλγοριθμικά Προβλήματα
 
-Μάθημα: Ανάπτυξη Λογισμικού για Αλγοριθμικά Προβλήματα
-
-Ίδρυμα: ΕΚΠΑ
-
----
-
-## Overview
-
-Neural-LSH combines:
-- **Graph-based data structures**: k-NN graphs for local neighborhood information
-- **Graph partitioning**: KaHIP for balanced graph partitioning
-- **Neural networks**: MLP trained to predict optimal hash bucket assignments
-- **Fast search**: 4-step approximate search pipeline achieving 100-500ms per query
+**Ίδρυμα:** ΕΚΠΑ (Εθνικό και Καποδιστριακό Πανεπιστήμιο Αθηνών)
 
 ---
 
-## Python Files & Descriptions
+## Επισκόπηση
 
-### Core Implementation
+Το Neural-LSH συνδυάζει:
+- **Δομές δεδομένων βασισμένες σε γράφους**: γραφήματα k-ΝΝ για πληροφορίες τοπικής γειτονιάς
+- **Διαμέριση γράφων**: KaHIP για ισορροπημένη διαμέριση
+- **Νευρωνικά δίκτυα**: MLP εκπαιδευμένο να προβλέπει βέλτιστες αναθέσεις κάδων κατακερματισμού
+- **Γρήγορη αναζήτηση**: αγωγός 4 βημάτων που επιτυγχάνει 100-500ms ανά ερώτημα
+
+---
+
+## Περιγραφή Αρχείων Python
+
+### Κύρια Υλοποίηση
 
 ```
 src/
-├── nlsh_build.py          # Main index building script
-└── nlsh_search.py         # Main search script
+├── nlsh_build.py          # Κύριο σενάριο δημιουργίας δείκτη
+└── nlsh_search.py         # Κύριο σενάριο αναζήτησης
 ```
 
-### Neural-LSH Library
+### Βιβλιοθήκη Neural-LSH
 
 ```
 nlsh/
 ├── __init__.py
-├── graph/                 # k-NN graph operations
+├── graph/                 # Λειτουργίες γραφήματος k-ΝΝ
 │   ├── __init__.py
-│   ├── knn_graph.py      # k-NN graph construction
-│   └── graph_build.py    # Graph building utilities
-└── index/                # Index and model operations
+│   ├── knn_graph.py      # Κατασκευή γραφήματος k-ΝΝ
+│   └── graph_build.py    # Βοηθητικές συναρτήσεις δημιουργίας
+└── index/                # Λειτουργίες ευρετηρίου και μοντέλου
     ├── __init__.py
-    ├── index_builder.py  # Index construction
-    └── mlp_model.py      # MLP model definition
+    ├── index_builder.py  # Κατασκευή ευρετηρίου
+    └── mlp_model.py      # Ορισμός μοντέλου MLP
 ```
 
 ### Supporting Modules
 
 ```
 search/
-├── search_algorithms.py   # LSH and exact search algorithms
-├── search_io.py          # Data loading (SIFT, MNIST, fvecs, idx3-ubyte)
-├── search_metrics.py     # Recall, AF, QPS calculations
-├── search_output.py      # Result formatting
-└── create_brute_force_cache.py  # Pre-compute ground truth distances
+├── search_algorithms.py   # Αλγόριθμοι LSH και ακριβούς αναζήτησης
+├── search_io.py          # Φόρτωση δεδομένων (SIFT, MNIST, fvecs, idx3-ubyte)
+├── search_metrics.py     # Υπολογισμοί Recall, AF, QPS
+├── search_output.py      # Μορφοποίηση αποτελεσμάτων
+└── create_brute_force_cache.py  # Προϋπολογισμός αληθινών αποστάσεων
 
 utils/
-├── args.py               # Argument parsing
-├── math_utils.py         # Mathematical utilities
-└── output.py             # Output formatting
+├── args.py               # Ανάλυση ορισμάτων
+├── math_utils.py         # Μαθηματικές βοηθητικές συναρτήσεις
+└── output.py             # Μορφοποίηση εξόδου
 
 dataparser/
-├── sift_parser.py        # SIFT .fvecs format handler
-└── mnist_parser.py       # MNIST idx3-ubyte format handler
+├── sift_parser.py        # Φόρτωση διανυσμάτων SIFT
+└── mnist_parser.py       # Φόρτωση εικόνων MNIST
 ```
 
 ### Experimental Framework
 
 ```
 experimental_study/
-├── experiment_runner.py            # Grid search orchestrator
-├── experiment_runner_extended.py   # Extended experiments with novel scenarios
-├── comparative_analysis.py         # Compare methods
-├── summary_report_generator.py     # Report generation
-└── EXPERIMENTAL_RESULTS_NEURAL_LSH.md  # Comprehensive results report
+├── experiment_runner.py            # Ορχηστρώνης δικτυωτής αναζήτησης
+├── experiment_runner_extended.py   # Διευρυμένα πειράματα με νέα σενάρια
+├── comparative_analysis.py         # Σύγκριση μεθόδων
+├── summary_report_generator.py     # Δημιουργία αναφορών
+└── EXPERIMENTAL_RESULTS_NEURAL_LSH.md  # Περιεκτικές αναφορές αποτελεσμάτων
 
 scripts/
-├── run_experiment_scenario.sh      # Predefined experimental scenarios
-└── setup_mac.sh                    # macOS setup script
+├── run_experiment_scenario.sh      # Προκαθορισμένα σενάρια πειραμάτων
+└── setup_mac.sh                    # Σενάριο εγκατάστασης macOS
 ```
 
 ### Data & Results
 
 ```
-dataset/              # Input data (downloaded separately)
-├── sift_base.fvecs   # 1M SIFT vectors
-├── sift_query.fvecs  # SIFT queries
-├── train-images.idx3-ubyte  # 60k MNIST training
-└── t10k-images.idx3-ubyte   # 10k MNIST test
+dataset/              # Δεδομένα εισόδου (λήψη ξεχωριστά)
+├── sift_base.fvecs   # 1M διανύσματα SIFT
+├── sift_query.fvecs  # Ερωτήματα SIFT
+├── train-images.idx3-ubyte  # 60k εκπαίδευση MNIST
+└── t10k-images.idx3-ubyte   # 10k δοκιμή MNIST
 
-cache/                # Build artifacts & caches
-├── knn_graphs/       # k-NN graph cache (.npz files)
-├── partition_caches/ # KaHIP partition results (.pkl files)
-├── index_model/      # Built Neural-LSH indices (.pkl files)
-└── brute_force/      # Ground truth distances (.npz files)
+cache/                # Αποθήκευση αντικειμένων δημιουργίας
+├── knn_graphs/       # Cache γραφήματος k-ΝΝ (αρχεία .npz)
+├── partition_caches/ # Αποτελέσματα διαμέρισης KaHIP (αρχεία .pkl)
+├── index_model/      # Δημιουργημένα ευρετήρια Neural-LSH (αρχεία .pkl)
+└── brute_force/      # Αληθινές αποστάσεις (αρχεία .npz)
 
-results/              # Experiment outputs
-└── [search/build results stored here]
+results/              # Αποτελέσματα πειραμάτων
+└── [Αποθηκευμένα αποτελέσματα αναζήτησης/δημιουργίας]
 
-build/                # Legacy build folder (deprecated)
-├── graph/            # Legacy graph building
-└── index_model/      # Legacy index building (superseded by nlsh/)
+build/                # Παλαιός φάκελος δημιουργίας (παρωχημένος)
+├── graph/            # Παλαιά δημιουργία γράφων
+└── index_model/      # Παλαιά δημιουργία ευρετηρίου (αντικαταστάθηκε από nlsh/)
 ```
 ---
 
 ### Main Entry Points
 
-#### `src/nlsh_build.py` - BUILD SCENARIO
-**Purpose**: Complete indexing pipeline (5 steps)
+#### `src/nlsh_build.py` - ΣΕΝΑΡΙΟ ΔΗΜΙΟΥΡΓΙΑΣ
+**Σκοπός**: Πλήρης αγωγός δημιουργίας ευρετηρίου (5 βήματα)
 
-**Pipeline Steps**:
-1. **Load Data** - Read SIFT/MNIST vectors
-2. **Build k-NN Graph** - Construct neighborhood graph (with caching)
-3. **Graph Partitioning** - Partition using KaHIP (with caching)
-4. **MLP Training** - Train neural classifier on partitions
-5. **Index Save** - Save trained model and index to disk
+**Βήματα Αγωγού**:
+1. **Φόρτωση Δεδομένων** - Ανάγνωση διανυσμάτων SIFT/MNIST
+2. **Δημιουργία γραφήματος k-ΝΝ** - Κατασκευή γραφήματος γειτονιάς (με cache)
+3. **Διαμέριση Γράφου** - Διαμέριση χρησιμοποιώντας KaHIP (με cache)
+4. **Εκπαίδευση MLP** - Εκπαίδευση νευρωνικού ταξινομητή στις διαμερίσεις
+5. **Αποθήκευση Ευρετηρίου** - Αποθήκευση εκπαιδευμένου μοντέλου και ευρετηρίου
 
-**Usage**:
+**Χρήση**:
 ```bash
 python3 src/nlsh_build.py --data <path> --type <sift|mnist> [options]
 ```
 
-**Key Options**:
-- `--data`: Path to dataset file (required)
-- `--type`: Dataset type: `sift` or `mnist` (required)
-- `--knn`: k for k-NN graph (default: 10)
-- `--m`: Number of partitions (default: 50)
-- `--layers`: MLP hidden layers (default: 2)
-- `--nodes`: Nodes per layer (default: 64)
-- `--epochs`: Training epochs (default: 10)
-- `--batch-size`: Training batch size (default: 64)
-- `--skip-graph`: Skip k-NN graph construction if cached
-- `--skip-kahip`: Skip partitioning if cached
+**Κύριες Επιλογές**:
+- `--data`: Διαδρομή αρχείου δεδομένων (υποχρεωτικό)
+- `--type`: Τύπος δεδομένων: `sift` ή `mnist` (υποχρεωτικό)
+- `--knn`: k για γράφημα k-ΝΝ (προεπιλογή: 10)
+- `--m`: Αριθμός διαμερίσεων (προεπιλογή: 50)
+- `--layers`: Κρυφά στρώματα MLP (προεπιλογή: 2)
+- `--nodes`: Κόμβοι ανά στρώμα (προεπιλογή: 64)
+- `--epochs`: Εποχές εκπαίδευσης (προεπιλογή: 10)
+- `--batch-size`: Μέγεθος παρτίδας εκπαίδευσης (προεπιλογή: 64)
+- `--skip-graph`: Παράλειψη κατασκευής γραφήματος αν υπάρχει στο cache
+- `--skip-kahip`: Παράλειψη διαμέρισης αν υπάρχει στο cache
 
-**Example**:
+**Παράδειγμα**:
 ```bash
 python3 src/nlsh_build.py \
   --data dataset/sift_base.fvecs \
@@ -151,29 +150,29 @@ python3 src/nlsh_build.py \
 ```
 ---
 
-#### `src/nlsh_search.py` - SEARCH SCENARIO
-**Purpose**: Query search using trained index
+#### `src/nlsh_search.py` - ΣΕΝΑΡΙΟ ΑΝΑΖΗΤΗΣΗΣ
+**Σκοπός**: Αναζήτηση ερωτημάτων χρησιμοποιώντας εκπαιδευμένο ευρετήριο
 
-**Search Pipeline (4 steps)**:
-1. **Hash Lookup** - MLP predicts candidate buckets
-2. **Candidate Collection** - Retrieve points from top-T buckets
-3. **Approximation** - Compute distances using learned representations
-4. **Ranking** - Sort by distance and return top-L
+**Αγωγός Αναζήτησης (4 βήματα)**:
+1. **Κατακερματισμός** - Το MLP προβλέπει υποψήφιους κάδους
+2. **Συλλογή Υποψηφίων** - Ανάκτηση σημείων από τους κορυφαίους-T κάδους
+3. **Προσέγγιση** - Υπολογισμός αποστάσεων χρησιμοποιώντας μαθημένες αναπαραστάσεις
+4. **Ταξινόμηση** - Ταξινόμηση κατά απόσταση και επιστροφή κορυφαίων-L
 
-**Usage**:
+**Χρήση**:
 ```bash
 python3 src/nlsh_search.py --index <path> --query <path> --type <sift|mnist> [options]
 ```
 
-**Key Options**:
-- `--index`: Path to index file (required)
-- `--query`: Path to query file (required)
-- `--type`: Dataset type: `sift` or `mnist` (required)
-- `-T`: Top buckets to probe (default: 2)
-- `-L`: k for k-NN results (default: 10)
-- `--batch-size`: Search batch size (default: 32)
+**Κύριες Επιλογές**:
+- `--index`: Διαδρομή αρχείου ευρετηρίου (υποχρεωτικό)
+- `--query`: Διαδρομή αρχείου ερωτημάτων (υποχρεωτικό)
+- `--type`: Τύπος δεδομένων: `sift` ή `mnist` (υποχρεωτικό)
+- `-T`: Κορυφαίοι κάδοι προς δοκιμή (προεπιλογή: 2)
+- `-L`: k για αποτελέσματα k-ΝΝ (προεπιλογή: 10)
+- `--batch-size`: Μέγεθος παρτίδας αναζήτησης (προεπιλογή: 32)
 
-**Example**:
+**Παράδειγμα**:
 ```bash
 python3 src/nlsh_search.py \
   --index cache/index_model/nlsh_sift_k15_m100_l2_n64_e10.pkl \
@@ -184,65 +183,65 @@ python3 src/nlsh_search.py \
 ```
 ---
 
-### Additional Utilities
+### Πρόσθετες Βοηθητικές Συναρτήσεις
 
-#### `search/create_brute_force_cache.py` - Ground Truth Generator
-- **Purpose**: Pre-compute exact k-NN distances for evaluation
-- **Standalone Utility**: Can be run independently
-- **Usage**: `python3 search/create_brute_force_cache.py --sift 1000 --mnist 1000`
-- **Output**: Cached distances in `cache/brute_force/`
-- **Benefit**: Saves 90-95% of search time by avoiding recomputation
-
----
-
-### Data Parsers
-
-#### `dataparser/sift_parser.py` - SIFT Vector Loading
-- **Format**: `.fvecs` (binary float32 vectors)
-- **Dimensions**: 128-dim
-- **Dataset Size**: 1M base vectors, 10k queries
-- **Key Function**: `SIFTParser().read_fvecs(filename)`
-
-#### `dataparser/mnist_parser.py` - MNIST Image Loading
-- **Format**: `.idx3-ubyte` (binary image format)
-- **Dimensions**: 784-dim (28×28 images flattened)
-- **Dataset Size**: 60k training, 10k test
-- **Key Function**: `MNISTParser().read_images(filename)`
+#### `search/create_brute_force_cache.py` - Γεννήτρια Αληθινής Τιμής
+- **Σκοπός**: Προϋπολογισμός ακριβών αποστάσεων k-ΝΝ για αξιολόγηση
+- **Ανεξάρτητη Βοηθητική Συναρτήση**: Μπορεί να τρέξει ανεξάρτητα
+- **Χρήση**: `python3 search/create_brute_force_cache.py --sift 1000 --mnist 1000`
+- **Έξοδος**: Αποθηκευμένες αποστάσεις στο `cache/brute_force/`
+- **Όφελος**: Εξοικονομεί 90-95% του χρόνου αναζήτησης αποφεύγοντας επανυπολογισμό
 
 ---
 
-### Utilities
+### Ανάλυτες Δεδομένων
 
-#### `utils/args.py` - Argument Parsing
-- **Purpose**: Validate and parse command-line arguments
-- **Key Functions**:
-  - `parse_and_validate_build_args()` - Build scenario arguments
-  - `parse_and_validate_search_args()` - Search scenario arguments
-  - `print_build_summary()` - Display build configuration
+#### `dataparser/sift_parser.py` - Φόρτωση Διανυσμάτων SIFT
+- **Μορφή**: `.fvecs` (δυαδικά διανύσματα float32)
+- **Διαστάσεις**: 128-dim
+- **Μέγεθος Σετ Δεδομένων**: 1M διανύσματα βάσης, 10k ερωτήματα
+- **Κύρια Συναρτήση**: `SIFTParser().read_fvecs(filename)`
 
-#### `utils/math_utils.py` - Mathematical Utilities
-- **Purpose**: Distance metrics and evaluation functions
-- **Key Functions**:
-  - `euclidean_distance()` - Euclidean distance
-  - `euclidean_distances_matrix()` - Pairwise Euclidean
-  - `manhattan_distance()` - Manhattan distance
-  - `cosine_similarity()` - Cosine similarity
-  - `hamming_distance()` - Hamming distance
-  - `compute_nearest_neighbors()` - Exact k-NN search
-  - `compute_recall()` - Recall@k
-  - `compute_qps()` - QPS metric
-  - `compute_statistics()` - Data statistics
-
-#### `utils/output.py` - Output Formatting
-- **Purpose**: Pretty-print results and formatting utilities
-- **Key Functions**:
-  - `print_header()` - Console headers
-  - `print_summary()` - Summary printing
-  - `format_time()` - Human-readable timing
+#### `dataparser/mnist_parser.py` - Φόρτωση Εικόνων MNIST
+- **Μορφή**: `.idx3-ubyte` (δυαδική μορφή εικόνας)
+- **Διαστάσεις**: 784-dim (εικόνες 28×28 ισοπεδωμένες)
+- **Μέγεθος Σετ Δεδομένων**: 60k εκπαίδευση, 10k δοκιμή
+- **Κύρια Συναρτήση**: `MNISTParser().read_images(filename)`
 
 ---
 
-## Installation Instructions
+### Βοηθητικές Συναρτήσεις
+
+#### `utils/args.py` - Ανάλυση Ορισμάτων
+- **Σκοπός**: Επικύρωση και ανάλυση ορισμάτων γραμμής εντολών
+- **Κύριες Συναρτήσεις**:
+  - `parse_and_validate_build_args()` - Ορίσματα σεναρίου δημιουργίας
+  - `parse_and_validate_search_args()` - Ορίσματα σεναρίου αναζήτησης
+  - `print_build_summary()` - Εμφάνιση διαμόρφωσης δημιουργίας
+
+#### `utils/math_utils.py` - Μαθηματικές Βοηθητικές Συναρτήσεις
+- **Σκοπός**: Μετρικές απόστασης και συναρτήσεις αξιολόγησης
+- **Κύριες Συναρτήσεις**:
+  - `euclidean_distance()` - Ευκλείδειος απόσταση
+  - `euclidean_distances_matrix()` - Ζευγαρωτές Ευκλείδειες αποστάσεις
+  - `manhattan_distance()` - Απόσταση Μανχάταν
+  - `cosine_similarity()` - Ομοιότητα συνημιτόνου
+  - `hamming_distance()` - Απόσταση Hamming
+  - `compute_nearest_neighbors()` - Ακριβής αναζήτηση k-ΝΝ
+  - `compute_recall()` - Μέτρο Recall@k
+  - `compute_qps()` - Μέτρο QPS
+  - `compute_statistics()` - Στατιστικά δεδομένων
+
+#### `utils/output.py` - Μορφοποίηση Εξόδου
+- **Σκοπός**: Καλλιτεχνική εκτύπωση αποτελεσμάτων
+- **Κύριες Συναρτήσεις**:
+  - `print_header()` - Κεφαλίδες κονσόλας
+  - `print_summary()` - Εκτύπωση περιλήψεων
+  - `format_time()` - Ανθρώπινα αναγνώσιμη μορφή χρόνου
+
+---
+
+## Οδηγίες Εγκατάστασης
 
 ### Step 1: Clone Repository
 ```bash
@@ -270,14 +269,14 @@ pip3 install --upgrade pip setuptools wheel
 pip3 install -r requirements.txt
 ```
 
-**Requirements Include**:
-- `numpy>=1.21.0` - Numerical computation
-- `scipy>=1.7.0` - Scientific computing (distance metrics)
-- `scikit-learn>=1.0.0` - Machine learning (NearestNeighbors)
-- `torch>=1.10.0` - Deep learning (MLP model)
-- `kahip-python>=1.14` - Graph partitioning
-- `tqdm>=4.60.0` - Progress bars
-- `pandas>=1.3.0` - Data manipulation
+**Συμπεριλαμβανόμενες Εξαρτήσεις**:
+- `numpy>=1.21.0` - Αριθμητικός υπολογισμός
+- `scipy>=1.7.0` - Επιστημονικός υπολογισμός (μετρικές απόστασης)
+- `scikit-learn>=1.0.0` - Μηχανική μάθηση (NearestNeighbors)
+- `torch>=1.10.0` - Βαθιά μάθηση (μοντέλο MLP)
+- `kahip-python>=1.14` - Διαμέριση γράφων
+- `tqdm>=4.60.0` - Ράβδοι προόδου
+- `pandas>=1.3.0` - Χειρισμός δεδομένων
 
 ### Step 4: Verify Installation
 ```bash
@@ -293,63 +292,63 @@ venv\Scripts\activate  # Windows
 
 ### Step 6: (Optional) Pre-compute Ground Truth Caches
 
-Pre-computing exact k-NN distances saves 90-95% of search evaluation time:
+Ο προϋπολογισμός ακριβών αποστάσεων k-ΝΝ εξοικονομεί 90-95% του χρόνου αξιολόγησης:
 
 ```bash
 python3 search/create_brute_force_cache.py --sift 1000 --mnist 1000
 ```
 
-This creates:
+Αυτό δημιουργεί:
 - `cache/brute_force/brute_force_sift_q1000_n1000000.npz` (3.7GB)
 - `cache/brute_force/brute_force_mnist_q1000_n60000.npz` (229MB)
 
 ---
 
-## Build Scenario - Detailed Guide
+## Σενάριο Δημιουργίας - Λεπτομερής Οδηγός
 
-### Build Pipeline (5 Steps)
+### Αγωγός Δημιουργίας (5 Βήματα)
 
 ```
-Raw Data → k-NN Graph → Partitioning → MLP Training → Index File
+Ακατέργαστα Δεδομένα → Γράφημα k-ΝΝ → Διαμέριση → Εκπαίδευση MLP → Αρχείο Ευρετηρίου
 ```
 
-**Step 1: Load Data**
-- Reads vectors from `.fvecs` or `.idx3-ubyte` files
-- Validates data format and dimensions
-- Output: In-memory numpy array
+**Βήμα 1: Φόρτωση Δεδομένων**
+- Ανάγνωση διανυσμάτων από αρχεία `.fvecs` ή `.idx3-ubyte`
+- Επικύρωση μορφής δεδομένων και διαστάσεων
+- Έξοδος: Πίνακας numpy σε μνήμη
 
-**Step 2: Build k-NN Graph**
-- Constructs k-NN graph from vectors using sklearn
-- Creates adjacency matrix (sparse)
-- Caches result in `cache/knn_graphs/`
-- Output: Graph structure with ~10k-100k edges
+**Βήμα 2: Δημιουργία γραφήματος k-ΝΝ**
+- Κατασκευή γραφήματος k-ΝΝ από διανύσματα χρησιμοποιώντας sklearn
+- Δημιουργία αραιού πίνακα γειτνίασης
+- Cache αποτελέσματος στο `cache/knn_graphs/`
+- Έξοδος: Δομή γράφου με ~10k-100k ακμές
 
-**Step 3: Graph Partitioning**
-- Uses KaHIP to partition graph into m balanced partitions
-- Minimizes edge cuts (good locality)
-- Caches partition assignment
-- Output: Vector → partition mapping
+**Βήμα 3: Διαμέριση Γράφου**
+- Χρήση KaHIP για διαμέριση γράφου σε m ισορροπημένες διαμερίσεις
+- Ελαχιστοποίηση αποκοπών ακμών (καλή τοπικότητα)
+- Cache αναθέσεων διαμέρισης
+- Έξοδος: Χαρτογράφηση διανύσματος → διαμέρισης
 
-**Step 4: MLP Training**
-- Trains MLP on graph partitions
-- Input: Vector embeddings
-- Output: Predicted partition (0 to m-1)
-- Loss: Cross-entropy classification
-- Output: Trained MLP weights
+**Βήμα 4: Εκπαίδευση MLP**
+- Εκπαίδευση MLP στις διαμερίσεις γράφου
+- Είσοδος: Δηλώσεις διανυσμάτων
+- Έξοδος: Προβλεπόμενη διαμέριση (0 έως m-1)
+- Απώλεια: Ταξινόμηση Cross-entropy
+- Έξοδος: Εκπαιδευμένα βάρη MLP
 
-**Step 5: Index Save**
-- Creates inverted file: partition → vector list
-- Serializes MLP model
-- Saves combined index to pickle file
-- Output: Single `.pkl` file ready for search
+**Βήμα 5: Αποθήκευση Ευρετηρίου**
+- Δημιουργία ανεστραμμένου αρχείου: διαμέριση → λίστα διανυσμάτων
+- Σειριοποίηση μοντέλου MLP
+- Αποθήκευση συνδυασμένου ευρετηρίου σε αρχείο pickle
+- Έξοδος: Μοναδικό αρχείο `.pkl` έτοιμο για αναζήτηση
 
-### Running Build
+### Εκτέλεση Δημιουργίας
 
-**Default Configuration**:
+**Προεπιλεγμένη Διαμόρφωση**:
 - k=10, m=50, layers=2, nodes=64, epochs=10
-- Estimated time: 30-60 seconds
+- Εκτιμώμενος χρόνος: 30-60 δευτερόλεπτα
 
-#### Sift
+#### SIFT
 ```bash
 python3 src/nlsh_build.py \
   --data dataset/sift_base.fvecs \
@@ -362,7 +361,7 @@ python3 src/nlsh_build.py \
   --batch-size 128
 ```
 
-#### MNIST Build
+#### Δημιουργία MNIST
 ```bash
 python3 src/nlsh_build.py \
   --data dataset/train-images.idx3-ubyte \
@@ -371,37 +370,37 @@ python3 src/nlsh_build.py \
   --m 50
 ```
 
-## Search Pipeline (4 Steps)
+## Αγωγός Αναζήτησης (4 Βήματα)
 
 ```
-Query Vector → MLP Prediction → Candidate Retrieval → Distance Ranking → Results
+Διάνυσμα Ερωτήματος → Πρόβλεψη MLP → Ανάκτηση Υποψηφίων → Ταξινόμηση Απόστασης → Αποτελέσματα
 ```
 
-**Step 1: Hash Lookup**
-- Query vector passed through trained MLP
-- MLP outputs predicted bucket indices (0 to m-1)
-- Output: Top-T bucket predictions
+**Βήμα 1: Κατακερματισμός**
+- Διάνυσμα ερωτήματος περνά μέσα από εκπαιδευμένο MLP
+- Το MLP εξάγει προβλεπόμενες διαμερίσεις κάδου (0 έως m-1)
+- Έξοδος: Κορυφαίες-T προβλέψεις διαμέρισης
 
-**Step 2: Candidate Collection**
-- Retrieve all vectors from top-T buckets
-- From inverted index (partition → vector list)
-- Output: Set of candidate vectors (~50-500 vectors)
+**Βήμα 2: Συλλογή Υποψηφίων**
+- Ανάκτηση όλων των διανυσμάτων από τους κορυφαίους-T κάδους
+- Από το ανεστραμμένο ευρετήριο (διαμέριση → λίστα διανυσμάτων)
+- Έξοδος: Σετ υποψήφιων διανυσμάτων (~50-500 διανύσματα)
 
-**Step 3: Approximation**
-- Compute distances between query and candidates
-- Using original or learned representations
-- Fast operation (small candidate set)
-- Output: Approximate distances
+**Βήμα 3: Προσέγγιση**
+- Υπολογισμός αποστάσεων μεταξύ ερωτήματος και υποψηφίων
+- Χρησιμοποίηση αρχικών ή μαθημένων αναπαραστάσεων
+- Γρήγορη λειτουργία (μικρό σετ υποψηφίων)
+- Έξοδος: Προσεγγιστικές αποστάσεις
 
-**Step 4: Exact Ranking**
-- Sort candidates by distance
-- Return top-L nearest neighbors
-- Optional: Compute exact distances (if needed)
-- Output: Final k-NN results with distances
+**Βήμα 4: Ακριβής Ταξινόμηση**
+- Ταξινόμηση υποψηφίων κατά απόσταση
+- Επιστροφή κορυφαίων-L γειτόνων
+- Προαιρετικά: Υπολογισμός ακριβών αποστάσεων (αν απαιτείται)
+- Έξοδος: Τελικά αποτελέσματα k-ΝΝ με αποστάσεις
 
-### Running Search
+### Εκτέλεση Αναζήτησης
 
-#### Basic Search (SIFT)
+#### Βασική Αναζήτηση (SIFT)
 ```bash
 python3 src/nlsh_search.py \
   --index cache/index_model/nlsh_sift_k15_m100_l2_n64_e10.pkl \
@@ -409,11 +408,11 @@ python3 src/nlsh_search.py \
   --type sift
 ```
 
-**Default Configuration**:
-- T=2 (top 2 buckets), L=10 (return 10 neighbors)
-- Estimated time: 0.5-2 seconds for 10k queries
+**Προεπιλεγμένη Διαμόρφωση**:
+- T=2 (κορυφαίοι 2 κάδοι), L=10 (επιστροφή 10 γειτόνων)
+- Εκτιμώμενος χρόνος: 0.5-2 δευτερόλεπτα για 10k ερωτήματα
 
-#### MNIST Search
+#### Αναζήτηση MNIST
 ```bash
 python3 src/nlsh_search.py \
   --index cache/index_model/nlsh_mnist_k20_m50_l2_n64_e10.pkl \
