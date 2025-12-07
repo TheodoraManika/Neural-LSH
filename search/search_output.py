@@ -8,6 +8,7 @@ import numpy as np
 from typing import List, Dict
 import sys
 import os
+import pickle
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -112,59 +113,71 @@ def log_search_experiment(args, results: List[Dict], search_time: float) -> None
     )
 
 
-def save_search_results(output_path: str, results: List[Dict], method_name: str = 'Neural LSH') -> None:
+def save_results(results: list, output_path: str, method_name: str = 'Neural LSH') -> None:
     """
-    Αποθήκευση αποτελεσμάτων αναζήτησης χρησιμοποιώντας write_results_file.
+    Αποθήκευση αποτελεσμάτων σε αρχείο με τη μορφή που απαιτεί η εργασία.
+    
+    Μορφή εξόδου:
+    <METHOD NAME> Neural LSH
+    Query: image_id_in_query_set
+    Nearest neighbor-1: image_id_in_data_set
+    distanceApproximate: <double>
+    distanceTrue: <double>
+    ...
+    R-near neighbors:
+    image_id_A
+    ...
+    Average AF: <double>
+    Recall@N: <double>
+    QPS: <double>
+    tApproximateAverage: <double>
+    tTrueAverage: <double>
     
     Args:
-        output_path: Διαδρομή αποθήκευσης αποτελεσμάτων
-        results: Λίστα αποτελεσμάτων
-        method_name: Όνομα της μεθόδου
-    """
-    # Μετατροπή results σε μορφή που περιμένει η write_results_file
-    results_dict = {}
-    for idx, result in enumerate(results):
-        results_dict[idx] = {
-            'neighbors': [
-                {
-                    'id': nid,
-                    'approx_dist': adist,
-                    'true_dist': tdist
-                }
-                for nid, adist, tdist in zip(
-                    result.get('neighbor_indices', []),
-                    result.get('neighbor_distances', []),
-                    result.get('true_distances', [])
-                )
-            ],
-            'range_neighbors': result.get('range_neighbors', []),
-            'avg_af': result.get('avg_af', 0.0),
-            'recall': result.get('recall', 0.0),
-            'qps': result.get('qps', 0.0),
-            't_approx': result.get('t_approx', 0.0),
-            't_true': result.get('t_true', 0.0)
-        }
-    
-    write_results_file(output_path, results_dict, method_name)
-
-
-def save_results_text(output_path: str, results_text: str) -> None:
-    """
-    Αποθήκευση αποτελεσμάτων ως απλό κείμενο.
-    
-    Args:
+        results: List με τα αποτελέσματα
         output_path: Διαδρομή αποθήκευσης
-        results_text: Κείμενο αποτελεσμάτων
+        method_name: Όνομα της μεθόδου (default: 'Neural LSH')
     """
-    write_results_simple(output_path, results_text)
-
-
-def log_partition_debug(output_path: str, partition_ids: np.ndarray) -> None:
-    """
-    Καταγραφή πληροφοριών διαμέρισης για debugging.
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     
-    Args:
-        output_path: Διαδρομή αποθήκευσης
-        partition_ids: Πίνακας IDs διαμέρισης
-    """
-    save_partition_assignment(output_path, partition_ids)
+    # Αποθήκευση σε μορφή εργασίας
+    with open(output_path, 'w') as f:
+        f.write(f"<METHOD NAME> {method_name}\n")
+        
+        for result in results:
+            query_id = result['query_id']
+            f.write(f"Query: {query_id}\n")
+            
+            # Γραφή k-NN γειτόνων
+            for rank in range(len(result.get('neighbor_indices', []))):
+                neighbor_id = result['neighbor_indices'][rank]
+                approx_dist = result['neighbor_distances'][rank]
+                true_dist = result['true_distances'][rank]
+                
+                f.write(f"Nearest neighbor-{rank + 1}: {neighbor_id}\n")
+                f.write(f"distanceApproximate: {approx_dist:.6f}\n")
+                f.write(f"distanceTrue: {true_dist:.6f}\n")
+            
+            # Γραφή range neighbors
+            f.write("R-near neighbors:\n")
+            for range_neighbor_id in result.get('range_neighbors', []):
+                f.write(f"{range_neighbor_id}\n")
+            
+            # Γραφή μετρικών
+            f.write(f"Average AF: {result.get('avg_af', 0.0):.6f}\n")
+            f.write(f"Recall@N: {result.get('recall', 0.0):.6f}\n")
+            f.write(f"QPS: {result.get('qps', 0.0):.6f}\n")
+            f.write(f"tApproximateAverage: {result.get('t_approx', 0.0):.6f}\n")
+            f.write(f"tTrueAverage: {result.get('t_true', 0.0):.6f}\n")
+            f.write("\n")
+    
+    # Αποθήκευση ως pickle για ευκολία φόρτωσης στο Python
+    with open(output_path + '.pkl', 'wb') as f:
+        pickle.dump(results, f)
+    
+    print(f"\nΑποτελέσματα αποθηκεύτηκαν:")
+    print(f"  - Μορφή εργασίας: {output_path}")
+    print(f"  - Pickle format: {output_path}.pkl")
+

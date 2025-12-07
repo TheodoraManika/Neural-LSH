@@ -108,7 +108,10 @@ class ExperimentRunner:
         print(f"Config: {config.to_dict()}")
         
         index_name = config.get_index_name()
-        index_path = str(self.workspace_dir / f'{index_name}.pkl')
+        # Store index in cache/index_model folder
+        index_cache_dir = Path.cwd() / 'cache' / 'index_model'
+        index_cache_dir.mkdir(parents=True, exist_ok=True)
+        index_path = str(index_cache_dir / f'{index_name}.pkl')
         
         # ===== BUILD PHASE =====
         print(f"\n[BUILD PHASE]")
@@ -163,8 +166,9 @@ class ExperimentRunner:
             '-q', query_file,
             '-i', index_path,
             '-o', search_output,
+            '-type', config.data_type,  # Add data type
             '-N', '10',  # Return top 10 neighbors
-            '-T', '5',   # Explore T buckets
+            '-T', '2',   # Explore only 2 buckets for speed (was 5)
         ]
         
         search_start = time.time()

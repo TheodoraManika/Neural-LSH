@@ -30,10 +30,10 @@ from dataparser.sift_parser import SIFTParser
 from dataparser.mnist_parser import MNISTParser
 from utils.args import parse_and_validate_build_args, print_build_summary
 from utils.math_utils import euclidean_distances_matrix
-from nlsh.index.mlp_model import NeuralLSH_MLP
-from nlsh.index.index_builder import build_index_with_kahip
-from nlsh.graph.graph_build import GraphBuilder
-from search.search_io import load_data  # Use shared data loading function
+from build.index_model.mlp_model import NeuralLSH_MLP
+from build.index_model.index_builder import build_index_with_kahip
+from build.graph.graph_build import GraphBuilder, graph_cache_exists, get_graph_cache_path
+from search.search_input import load_data  # Use shared data loading function
 
 try:
     import kahip
@@ -45,37 +45,30 @@ except ImportError:
 def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'sift', skip_build: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Build k-NN graph using GraphBuilder from graph_build.py and return CSR format.
-    If skip_build=True and existing graph binary is found, load it instead of rebuilding.
-    
-    Uses the GraphBuilder class from nlsh.graph.graph_build which handles:
-    1. k-NN graph construction
-    2. Graph symmetrization
-    3. Edge weight assignment
-    4. CSR format conversion
-    5. Binary graph saving
+    Checks if graph with same type and k already exists - skips build if it does.
+    Saves the graph to cache directory.
     
     Args:
         data: Data points (N, D)
         k: Number of nearest neighbors
         data_type: 'sift' or 'mnist' (for naming the output file)
-        skip_build: If True, load from existing graph instead of rebuilding
+        skip_build: If True, skip building if graph exists
         
     Returns:
         Tuple of (xadj, adjncy, adjcwt, vwgt) arrays in CSR format
     """
-    print(f"\n[ΒΗΜΑ 2α] Κατασκευή k-NN Γράφου...")
+    print(f"\n[ΒΗΜΑ 2α] Κατασκευή k-NN Γράφου (k={k})...")
+    
+    # Check if graph already exists with same type and k
+    if graph_cache_exists(data_type, k):
+        graph_path = get_graph_cache_path(data_type, k)
+        print(f"  ✓ Graph already exists: {graph_path.name}")
+        if skip_build:
+            print(f"  ⚠ --skip-graph flag set, skipping build")
+            return None, None, None, None  # TODO: Load from cache
     
     n_points = len(data)
-    graph_dir = Path(__file__).parent.parent / "nlsh" / "graph"
-    graph_dir.mkdir(parents=True, exist_ok=True)
-    graph_filename = f"{data_type}_graph.bin"
-    graph_path = graph_dir / graph_filename
-    
-    # Check if we should skip graph building
-    if skip_build and graph_path.exists():
-        print(f"  ✓ --skip-graph: Loading existing graph from {graph_filename}...")
-        # TODO: Implement loading from existing graph binary
-        # For now, continue to rebuild
+    graph_path = get_graph_cache_path(data_type, k)
     
     # Use GraphBuilder class to construct graph with all preprocessing
     print(f"  - Using GraphBuilder class from graph_build.py...")
@@ -93,11 +86,12 @@ def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'si
     # Step 4: Convert to CSR format
     xadj, adjncy, adjcwt, vwgt = graph_builder.to_csr_format(sym_adj, edge_weights)
     
-    # Step 5: Save graph to binary file
-    output_path = str(graph_path)
-    graph_builder.save_graph_kahip_format(sym_adj, edge_weights, output_path)
+    # Step 5: Save CSR arrays to cache
+    graph_path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(str(graph_path), 
+             xadj=xadj, adjncy=adjncy, adjcwt=adjcwt, vwgt=vwgt)
     
-    print(f"  ✓ Γράφος αποθηκεύτηκε: {graph_path}")
+    print(f"  ✓ Γράφος αποθηκεύτηκε: {graph_path.parent.name}/{graph_path.name}")
     
     return xadj, adjncy, adjcwt, vwgt
 
@@ -106,7 +100,7 @@ def build_knn_graph_and_save(data: np.ndarray, k: int = 10, data_type: str = 'si
 
 def get_kahip_cache_file(data_type: str, m: int) -> Path:
     """Get cache file path for KaHIP partitioning results."""
-    cache_dir = Path('nlsh/graph/cache')
+    cache_dir = Path.cwd() / 'cache' / 'partition_caches'
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir / f"{data_type}_kahip_m{m}.pkl"
 

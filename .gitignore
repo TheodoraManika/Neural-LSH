@@ -1,53 +1,81 @@
-# Dataset files - large files
-dataset/*.fvecs
-dataset/*.idx3-ubyte
-dataset/*.npy
-nlsh/graph/*.bin
-nlsh/graph/cache/*.pkl
-
-*.pdf
-*.o
-*.d
-
-# Ignore large result files
-results/report_tests/*
-results/*.txt
-results/*.pkl
-results/*.json
-
 # Python
 __pycache__/
 *.py[cod]
-*.pyc
+*$py.class
+*.so
 .Python
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
+# Virtual Environment
 venv/
+ENV/
 env/
+.venv
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 .DS_Store
+*.iml
 
-# PyTorch models
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Data and Caches
+cache/
+dataset/sift_base.fvecs
+dataset/sift_groundtruth.ivecs
+dataset/sift_learn.fvecs
+dataset/sift_query.fvecs
+dataset/t10k-images.idx3-ubyte
+dataset/train-images.idx3-ubyte
+
+# Large Binary Files
+*.bin
+*.pkl
+*.npz
+*.pdf
 *.pth
 *.pt
 *.ckpt
-model_index/*.bin
-
-# Data files
 *.ivecs
 *.bvecs
 *.hdf5
 *.h5
 
-# Model and Index outputs
-model/*.pth
-model/*.pt
-index/*.idx
-index/*.bin
+# Results and Logs
+results/
+*.log
+*.tmp
+*.temp
+
+# Project-specific temporary files
+nlsh/graph/*.bin
+cache/knn_graphs/*.bin
+cache/partition_caches/
+
+# OS
+Thumbs.db
 
 # Logs
 *.log

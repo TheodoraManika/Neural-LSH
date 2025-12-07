@@ -21,7 +21,7 @@ def load_index_and_model(index_path: str) -> Tuple[Dict, 'NeuralLSH_MLP', 'torch
         Tuple[index_data, model, device]
     """
     import torch
-    from nlsh.index.mlp_model import NeuralLSH_MLP
+    from build.index_model.mlp_model import NeuralLSH_MLP
     
     if not os.path.exists(index_path):
         raise FileNotFoundError(f"Το αρχείο ευρετηρίου δεν βρέθηκε: {index_path}")
@@ -122,79 +122,10 @@ def load_queries(queries_path: str) -> np.ndarray:
         import sys
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from dataparser.sift_parser import SIFTParser
-        queries = SIFTParser.read(queries_path)
+        queries = SIFTParser.read_fvecs(queries_path)
     else:
         raise NotImplementedError(f"Μορφή αρχείου {queries_path} δεν υποστηρίζεται. "
                                   "Χρησιμοποιήστε .npy, .idx3-ubyte, ή .fvecs αρχεία.")
     
     print(f"Φορτώθηκαν {len(queries)} queries με διάσταση {queries.shape[1]}")
     return queries
-
-
-def save_results(results: list, output_path: str, method_name: str = 'Neural LSH') -> None:
-    """
-    Αποθήκευση αποτελεσμάτων σε αρχείο με τη μορφή που απαιτεί η εργασία.
-    
-    Μορφή εξόδου:
-    <METHOD NAME> Neural LSH
-    Query: image_id_in_query_set
-    Nearest neighbor-1: image_id_in_data_set
-    distanceApproximate: <double>
-    distanceTrue: <double>
-    ...
-    R-near neighbors:
-    image_id_A
-    ...
-    Average AF: <double>
-    Recall@N: <double>
-    QPS: <double>
-    tApproximateAverage: <double>
-    tTrueAverage: <double>
-    
-    Args:
-        results: List με τα αποτελέσματα
-        output_path: Διαδρομή αποθήκευσης
-        method_name: Όνομα της μεθόδου (default: 'Neural LSH')
-    """
-    output_dir = os.path.dirname(output_path)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-    
-    # Αποθήκευση σε μορφή εργασίας
-    with open(output_path, 'w') as f:
-        f.write(f"<METHOD NAME> {method_name}\n")
-        
-        for result in results:
-            query_id = result['query_id']
-            f.write(f"Query: {query_id}\n")
-            
-            # Γραφή k-NN γειτόνων
-            for rank in range(len(result.get('neighbor_indices', []))):
-                neighbor_id = result['neighbor_indices'][rank]
-                approx_dist = result['neighbor_distances'][rank]
-                true_dist = result['true_distances'][rank]
-                
-                f.write(f"Nearest neighbor-{rank + 1}: {neighbor_id}\n")
-                f.write(f"distanceApproximate: {approx_dist:.6f}\n")
-                f.write(f"distanceTrue: {true_dist:.6f}\n")
-            
-            # Γραφή range neighbors
-            f.write("R-near neighbors:\n")
-            for range_neighbor_id in result.get('range_neighbors', []):
-                f.write(f"{range_neighbor_id}\n")
-            
-            # Γραφή μετρικών
-            f.write(f"Average AF: {result.get('avg_af', 0.0):.6f}\n")
-            f.write(f"Recall@N: {result.get('recall', 0.0):.6f}\n")
-            f.write(f"QPS: {result.get('qps', 0.0):.6f}\n")
-            f.write(f"tApproximateAverage: {result.get('t_approx', 0.0):.6f}\n")
-            f.write(f"tTrueAverage: {result.get('t_true', 0.0):.6f}\n")
-            f.write("\n")
-    
-    # Αποθήκευση ως pickle για ευκολία φόρτωσης στο Python
-    with open(output_path + '.pkl', 'wb') as f:
-        pickle.dump(results, f)
-    
-    print(f"\nΑποτελέσματα αποθηκεύτηκαν:")
-    print(f"  - Μορφή εργασίας: {output_path}")
-    print(f"  - Pickle format: {output_path}.pkl")

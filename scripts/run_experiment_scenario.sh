@@ -10,7 +10,8 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-PROJECT_DIR="/Users/theodora/Desktop/uni/project/Neural-LSH"
+# Get project directory (parent of scripts directory)
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 print_header() {
     echo -e "\n${BLUE}================================${NC}"
@@ -28,7 +29,7 @@ scenario_quick_test() {
     echo "Best for: Testing setup and getting quick results\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 10 15 \
         --m 50 100 \
         --layers 2 \
@@ -47,7 +48,7 @@ scenario_balanced() {
     echo "Best for: Comprehensive analysis with reasonable runtime\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 10 15 20 \
         --m 50 100 200 \
         --layers 2 3 \
@@ -66,7 +67,7 @@ scenario_full() {
     echo "Best for: Most comprehensive analysis\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 10 15 20 \
         --m 50 100 200 \
         --layers 2 3 4 \
@@ -85,7 +86,7 @@ scenario_focused() {
     echo "Estimated Time: 1-2 hours\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 15 \
         --m 50 100 150 200 250 \
         --layers 2 3 4 5 \
@@ -104,7 +105,7 @@ scenario_mnist() {
     echo "Best for: Faster experiments on smaller dataset\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 5 10 15 \
         --m 50 100 200 \
         --layers 2 3 4 \
@@ -122,7 +123,7 @@ scenario_reports_only() {
     echo "Estimated Time: < 1 minute\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py --skip-grid-search
+    python experimental_study/experiment_runner.py --skip-grid-search
 }
 
 # ============================================================================
@@ -135,7 +136,7 @@ scenario_architecture() {
     echo "Estimated Time: 2-4 hours\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 15 \
         --m 100 \
         --layers 1 2 3 4 5 6 \
@@ -154,7 +155,7 @@ scenario_sensitivity() {
     echo "Estimated Time: 1-2 hours\n"
     
     cd "$PROJECT_DIR"
-    python experimental_study/run_experiments.py \
+    python experimental_study/experiment_runner.py \
         --knn 5 10 15 20 25 30 \
         --m 100 \
         --layers 3 \
@@ -210,7 +211,7 @@ scenario_custom() {
     
     cd "$PROJECT_DIR"
     
-    cmd="python experimental_study/run_experiments.py"
+    cmd="python experimental_study/experiment_runner.py"
     cmd="$cmd --knn $knn"
     cmd="$cmd --m $m"
     cmd="$cmd --layers $layers"

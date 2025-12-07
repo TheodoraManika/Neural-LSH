@@ -30,6 +30,28 @@ from dataparser.mnist_parser import MNISTParser
 from utils.math_utils import euclidean_distances_matrix
 
 
+def get_graph_cache_path(data_type: str, k: int) -> Path:
+    """
+    Get the cache file path for a k-NN graph.
+    
+    Args:
+        data_type: 'sift' or 'mnist'
+        k: Number of nearest neighbors
+        
+    Returns:
+        Path to cached graph file
+    """
+    cache_dir = Path('cache/knn_graphs')
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir / f"{data_type}_knn{k}.bin"
+
+
+def graph_cache_exists(data_type: str, k: int) -> bool:
+    """Check if a graph with the same type and k value exists."""
+    cache_path = get_graph_cache_path(data_type, k)
+    return cache_path.exists()
+
+
 class GraphBuilder:
     """Base class for k-NN graph construction."""
     
@@ -188,100 +210,32 @@ class GraphBuilder:
         print(f"    Average degree: {len(adjncy) / self.n_points:.2f}")
         
         return xadj, adjncy, adjcwt, vwgt
-    
-    def save_graph_kahip_format(self, 
-                               sym_adj: Dict[int, Set[int]], 
-                               edge_weights: Dict[Tuple[int, int], int],
-                               output_path: str) -> None:
-        """
-        Save graph in KaHIP binary format.
-        
-        KaHIP format (binary, little-endian):
-        - Header: 4 bytes int = number of vertices
-        - Header: 4 bytes int = number of edges
-        - For each vertex i:
-            - List of neighbor indices (4 bytes each, int)
-            - List of weights corresponding to neighbors (4 bytes each, int)
-        
-        Args:
-            sym_adj: Symmetrized adjacency dictionary
-            edge_weights: Edge weights dictionary
-            output_path: Path to save the graph file
-        """
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        print(f"Saving graph to {output_path}...")
-        
-        # Count total edges (undirected, so each edge counts once)
-        total_edges = len(edge_weights)
-        
-        # Build adjacency lists with weights for each vertex
-        vertex_neighbors = {i: [] for i in range(self.n_points)}
-        vertex_weights = {i: [] for i in range(self.n_points)}
-        
-        for (i, j), weight in edge_weights.items():
-            vertex_neighbors[i].append(j)
-            vertex_weights[i].append(weight)
-            vertex_neighbors[j].append(i)
-            vertex_weights[j].append(weight)
-        
-        # Sort neighbors for consistency
-        for i in range(self.n_points):
-            sorted_idx = np.argsort(vertex_neighbors[i])
-            vertex_neighbors[i] = [vertex_neighbors[i][idx] for idx in sorted_idx]
-            vertex_weights[i] = [vertex_weights[i][idx] for idx in sorted_idx]
-        
-        # Write KaHIP format
-        with open(output_path, 'wb') as f:
-            # Write header: number of vertices and edges
-            n_vertices = self.n_points
-            n_edges = 2 * total_edges  # Each edge counted twice (both directions)
-            
-            f.write(struct.pack('<I', n_vertices))
-            f.write(struct.pack('<I', n_edges))
-            
-            # Write adjacency list with weights for each vertex
-            for i in tqdm(range(self.n_points), desc="Writing KaHIP format"):
-                neighbors = vertex_neighbors[i]
-                weights = vertex_weights[i]
-                
-                # Write neighbors (1-indexed for KaHIP compatibility)
-                for neighbor in neighbors:
-                    f.write(struct.pack('<I', neighbor + 1))  # 1-indexed
-                
-                # Write corresponding weights
-                for weight in weights:
-                    f.write(struct.pack('<I', weight))
-        
-        # Print statistics
-        n_vertices = self.n_points
-        n_total_edges = 2 * total_edges
-        avg_degree = n_total_edges / n_vertices if n_vertices > 0 else 0
-        
-        print(f"\n✓ Graph saved successfully!")
-        print(f"  Vertices: {n_vertices}")
-        print(f"  Edges (undirected): {total_edges}")
-        print(f"  Total edge endpoints: {n_total_edges}")
-        print(f"  Average degree: {avg_degree:.2f}")
-        
-        return
 
 
 def build_sift_graph(dataset_path: str = "dataset/sift_base.fvecs",
-                     output_path: str = "nlsh/graph/sift_graph.bin",
+                     output_path: str = None,
                      k: int = 10) -> None:
     """
     Build and save k-NN graph for SIFT dataset.
     
     Args:
         dataset_path: Path to SIFT base vectors file
-        output_path: Path to save the graph file
+        output_path: Path to save the graph file (uses default if None)
         k: Number of nearest neighbors for graph construction
     """
+    # Use default output path if not provided
+    if output_path is None:
+        output_path = str(get_graph_cache_path('sift', k))
+    
     print("\n" + "="*70)
-    print("Building k-NN Graph for SIFT Dataset")
+    print(f"Building k-NN Graph for SIFT Dataset (k={k})")
     print("="*70)
+    
+    # Check if graph already exists
+    if graph_cache_exists('sift', k):
+        print(f"✓ Graph already exists at {output_path}")
+        print("Skipping build.")
+        return
     
     # Load SIFT dataset
     print(f"Loading SIFT dataset from {dataset_path}...")
@@ -300,17 +254,29 @@ def build_sift_graph(dataset_path: str = "dataset/sift_base.fvecs",
 
 
 def build_mnist_graph(dataset_path: str = "dataset/train-images.idx3-ubyte",
-                      output_path: str = "nlsh/graph/mnist_graph.bin",
+                      output_path: str = None,
                       k: int = 10) -> None:
     """
     Build and save k-NN graph for MNIST dataset.
     
     Args:
         dataset_path: Path to MNIST training images file
-        output_path: Path to save the graph file
+        output_path: Path to save the graph file (uses default if None)
         k: Number of nearest neighbors for graph construction
     """
+    # Use default output path if not provided
+    if output_path is None:
+        output_path = str(get_graph_cache_path('mnist', k))
+    
     print("\n" + "="*70)
+    print(f"Building k-NN Graph for MNIST Dataset (k={k})")
+    print("="*70)
+    
+    # Check if graph already exists
+    if graph_cache_exists('mnist', k):
+        print(f"✓ Graph already exists at {output_path}")
+        print("Skipping build.")
+        return
     print("Building k-NN Graph for MNIST Dataset")
     print("="*70)
     
@@ -357,12 +323,12 @@ Examples:
                        help='Number of nearest neighbors (default: 10)')
     parser.add_argument('--sift-input', type=str, default='dataset/sift_base.fvecs',
                        help='Path to SIFT base file (default: dataset/sift_base.fvecs)')
-    parser.add_argument('--sift-output', type=str, default='nlsh/graph/sift_graph.bin',
-                       help='Output path for SIFT graph (default: nlsh/graph/sift_graph.bin)')
+    parser.add_argument('--sift-output', type=str, default=None,
+                       help='Output path for SIFT graph (default: cache/knn_graphs/sift_knnK.bin where K is --knn)')
     parser.add_argument('--mnist-input', type=str, default='dataset/train-images.idx3-ubyte',
                        help='Path to MNIST images file (default: dataset/train-images.idx3-ubyte)')
-    parser.add_argument('--mnist-output', type=str, default='nlsh/graph/mnist_graph.bin',
-                       help='Output path for MNIST graph (default: nlsh/graph/mnist_graph.bin)')
+    parser.add_argument('--mnist-output', type=str, default=None,
+                       help='Output path for MNIST graph (default: cache/knn_graphs/mnist_knnK.bin where K is --knn)')
     
     args = parser.parse_args()
     

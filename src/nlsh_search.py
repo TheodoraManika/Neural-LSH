@@ -19,9 +19,9 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.args import parse_and_validate_search_args, print_search_summary
-from search.search_io import load_index_and_model, load_queries, load_data, save_results
+from search.search_input import load_index_and_model, load_queries, load_data
 from search.search_algorithms import search_all_queries
-from search.search_output import print_summary, log_search_experiment
+from search.search_output import print_summary, log_search_experiment, save_results
 
 
 def main():
@@ -67,7 +67,8 @@ def main():
         # =========================================================================
         print("\n[ΒΗΜΑ 3] Φόρτωση Ερωτημάτων...")
         queries_start = time.time()
-        queries = load_queries(args.query)
+        # Load only 1000 queries to match brute force cache
+        queries = load_queries(args.query, max_queries=1000)
         queries_load_time = time.time() - queries_start
         print(f"  Χρόνος φόρτωσης queries: {queries_load_time:.3f}s")
         
@@ -80,7 +81,8 @@ def main():
             model, queries, index_data, dataset, device,
             k=args.N,
             T=args.T,
-            radius=args.R
+            radius=args.R,
+            data_type=args.type
         )
         search_time = time.time() - search_start
         print(f"  Συνολικός χρόνος αναζήτησης: {search_time:.3f}s")
@@ -94,7 +96,17 @@ def main():
         # =========================================================================
         # Εκτύπωση Σύνοψης με χρήση utility functions
         # =========================================================================
-        print_summary(results, index_data['build_params'], search_time, len(queries))
+        # Use model_config or empty dict if build_params not available
+        build_params = index_data.get('build_params', {})
+        if not build_params and 'model_config' in index_data:
+            # Construct minimal build_params from model_config for display
+            build_params = {
+                'data_type': args.type,
+                'knn': 'unknown',
+                'parts': index_data.get('kahip_config', {}).get('num_buckets', 'unknown'),
+                'layers': index_data.get('model_config', {}).get('num_layers', 'unknown')
+            }
+        print_summary(results, build_params, search_time, len(queries))
         
         # =========================================================================
         # Logging με utility function
