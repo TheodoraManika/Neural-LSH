@@ -161,6 +161,8 @@ class ExperimentRunner:
         # ===== SEARCH PHASE =====
         print(f"\n[SEARCH PHASE]")
         search_output = str(self.results_dir / f"{index_name}_search.txt")
+        # Set radius based on data type (smaller radius = fewer range neighbors)
+        radius = '500' if config.data_type == 'sift' else '50'
         search_cmd = [
             'python', 'src/nlsh_search.py',
             '-d', config.data_file,
@@ -170,6 +172,7 @@ class ExperimentRunner:
             '-type', config.data_type,  # Add data type
             '-N', '10',  # Return top 10 neighbors
             '-T', '10',   # Explore top 10 buckets
+            '-R', radius,  # Range search radius (smaller = fewer results)
         ]
         
         search_start = time.time()
