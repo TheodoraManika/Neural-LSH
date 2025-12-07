@@ -60,6 +60,7 @@ def load_brute_force_cache(data_type: str, n_queries: int, n_points: int) -> Tup
         Tuple[distances_array, cache_exists]: Pre-computed distances or None, and whether cache was loaded
     """
     cache_path = get_brute_force_cache_path(data_type, n_queries, n_points)
+    print(f"  Looking for cache at: {cache_path}")
     
     if cache_path.exists():
         try:

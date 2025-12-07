@@ -18,6 +18,7 @@ Outputs:
 import os
 import sys
 import json
+import pickle
 import time
 import subprocess
 from pathlib import Path
@@ -84,7 +85,7 @@ class ExperimentRunner:
     """Manages experimental studies for Neural-LSH hyperparameter optimization."""
     
     def __init__(self, workspace_dir: str = None,
-                 results_dir: str = 'experimental_study/results'):
+                 results_dir: str = 'results'):
         # Use current directory if not specified
         if workspace_dir is None:
             workspace_dir = str(Path.cwd())
@@ -159,7 +160,7 @@ class ExperimentRunner:
         
         # ===== SEARCH PHASE =====
         print(f"\n[SEARCH PHASE]")
-        search_output = str(self.results_dir / f"{index_name}_search.json")
+        search_output = str(self.results_dir / f"{index_name}_search.txt")
         search_cmd = [
             'python', 'src/nlsh_search.py',
             '-d', config.data_file,
@@ -168,7 +169,7 @@ class ExperimentRunner:
             '-o', search_output,
             '-type', config.data_type,  # Add data type
             '-N', '10',  # Return top 10 neighbors
-            '-T', '2',   # Explore only 2 buckets for speed (was 5)
+            '-T', '10',   # Explore top 10 buckets
         ]
         
         search_start = time.time()
@@ -184,18 +185,19 @@ class ExperimentRunner:
             
             print(f"✓ Search completed in {search_time:.2f}s")
             
-            # Parse search results
-            if os.path.exists(search_output):
-                with open(search_output, 'r') as f:
-                    search_results = json.load(f)
+            # Parse search results from pickle file
+            pickle_output = search_output + '.pkl'
+            if os.path.exists(pickle_output):
+                with open(pickle_output, 'rb') as f:
+                    search_results = pickle.load(f)
                 
                 # Extract metrics
                 avg_recall = np.mean([r.get('recall', 0) for r in search_results])
-                avg_af = np.mean([r.get('af', 1.0) for r in search_results])
+                avg_af = np.mean([r.get('avg_af', 1.0) for r in search_results])
                 avg_qps = len(search_results) / search_time if search_time > 0 else 0
                 
             else:
-                print(f"⚠ Search output file not found: {search_output}")
+                print(f"⚠ Search output file not found: {pickle_output}")
                 avg_recall = avg_af = avg_qps = 0
                 search_results = []
             
