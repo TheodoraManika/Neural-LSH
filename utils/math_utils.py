@@ -48,43 +48,6 @@ def euclidean_distances_matrix(X: np.ndarray, Y: np.ndarray = None) -> np.ndarra
     return cdist(X, Y, metric='euclidean')
 
 
-def cosine_similarity(x: np.ndarray, y: np.ndarray) -> float:
-    """
-    Compute cosine similarity between two vectors.
-    
-    Args:
-        x: First vector
-        y: Second vector
-        
-    Returns:
-        Cosine similarity (in range [-1, 1])
-    """
-    x = np.asarray(x, dtype=np.float32)
-    y = np.asarray(y, dtype=np.float32)
-    
-    norm_x = np.linalg.norm(x)
-    norm_y = np.linalg.norm(y)
-    
-    if norm_x == 0 or norm_y == 0:
-        return 0.0
-    
-    return np.dot(x, y) / (norm_x * norm_y)
-
-
-def hamming_distance(x: np.ndarray, y: np.ndarray) -> int:
-    """
-    Compute Hamming distance between two binary vectors.
-    
-    Args:
-        x: First binary vector
-        y: Second binary vector
-        
-    Returns:
-        Hamming distance (number of differing bits)
-    """
-    return np.sum(x != y)
-
-
 def manhattan_distance(x: np.ndarray, y: np.ndarray) -> float:
     """
     Compute Manhattan distance between two vectors.
@@ -288,37 +251,3 @@ def compute_distance_distribution(distances: np.ndarray) -> dict:
         'median': float(np.median(distances))
     }
 
-
-# ============================================================================
-# Normalization and Scaling
-# ============================================================================
-
-def normalize_vectors_l2(vectors: np.ndarray) -> np.ndarray:
-    """
-    Normalize vectors to unit length (L2 norm).
-    
-    Args:
-        vectors: Array of shape (N, D)
-        
-    Returns:
-        L2-normalized vectors
-    """
-    vectors = np.asarray(vectors, dtype=np.float32)
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    return vectors / (norms + 1e-10)
-
-
-def standardize_vectors(vectors: np.ndarray) -> np.ndarray:
-    """
-    Standardize vectors (zero mean, unit variance).
-    
-    Args:
-        vectors: Array of shape (N, D)
-        
-    Returns:
-        Standardized vectors
-    """
-    vectors = np.asarray(vectors, dtype=np.float32)
-    mean = np.mean(vectors, axis=0)
-    std = np.std(vectors, axis=0)
-    return (vectors - mean) / (std + 1e-10)

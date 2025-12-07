@@ -21,7 +21,7 @@ def load_index_and_model(index_path: str) -> Tuple[Dict, 'NeuralLSH_MLP', 'torch
         Tuple[index_data, model, device]
     """
     import torch
-    from build.index_model.mlp_model import NeuralLSH_MLP
+    from nlsh.index.mlp_model import NeuralLSH_MLP
     
     if not os.path.exists(index_path):
         raise FileNotFoundError(f"Το αρχείο ευρετηρίου δεν βρέθηκε: {index_path}")
